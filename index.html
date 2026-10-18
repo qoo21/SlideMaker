@@ -1,0 +1,3093 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>スライド造形ツール (12×N Grid & Perspective Preview)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      background-color: #090b10;
+      color: #f1f5f9;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    input[type="range"] {
+      accent-color: #38bdf8;
+    }
+    .canvas-shadow {
+      box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    .tool-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+      border-color: #7dd3fc;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);
+    }
+    .div-btn.active {
+      background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+      border-color: #7dd3fc;
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .curve-btn.active {
+      background: linear-gradient(135deg, #c026d3 0%, #7c3aed 100%);
+      border-color: #f0abfc;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(217, 70, 239, 0.4);
+    }
+    .color-swatch.active {
+      transform: scale(1.08);
+      box-shadow: 0 0 0 2px #090b10, 0 0 0 4px #ffffff, 0 0 16px currentColor;
+    }
+    .layer-item.selected {
+      background: rgba(14, 165, 233, 0.18);
+      border-color: rgba(56, 189, 248, 0.65);
+    }
+    .relay-mode-btn.active-add {
+      background: linear-gradient(135deg, #c026d3 0%, #9333ea 100%);
+      border-color: #f0abfc;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(217, 70, 239, 0.45);
+    }
+    .relay-mode-btn.active-del {
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+      border-color: #fda4af;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.45);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#090b10] text-slate-100">
+
+  <!-- Top Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur sticky top-0 z-30 px-4 py-2">
+    <div class="max-w-[1800px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 via-[#52FFBD] to-[#FFCD42] flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <svg class="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L2 21h20L12 3z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18M12 3l-5 18M12 3l5 18" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            スライド造形ツール
+            <span id="headerGridBadge" class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">12×16 パレット</span>
+            <span id="autoSaveBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">自動保存: ブラウザ内</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- Global Actions -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btnSelectFolder" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 transition flex items-center gap-1.5" title="保存先フォルダを選択して自動保存を有効化">
+          <span>📁 保存フォルダ選択</span>
+        </button>
+        <button id="btnDownloadJson" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="JSONファイルを手動保存">
+          💾 JSON保存
+        </button>
+        <button id="btnImportJson" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="保存したJSONデータを読込">
+          📂 読込
+        </button>
+        <input type="file" id="fileImportInput" accept=".json" class="hidden" />
+        <button id="btnUndo" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition disabled:opacity-40" title="元に戻す (Ctrl+Z)">
+          ↩ 戻す
+        </button>
+        <button id="btnClearAll" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-200 border border-rose-800/60 transition">
+          🗑 全消去
+        </button>
+        <button id="btnExportPreview" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1">
+          ⬇ プレビュー画像保存
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 flex flex-col gap-4">
+
+    <!-- TOP SECTION: Enlarged Perspective Preview -->
+    <section class="w-full flex flex-col bg-slate-900/75 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+            <span>プレビュー</span>
+          </h2>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs flex-wrap">
+          <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700 cursor-pointer">
+            <input type="checkbox" id="chkShowMainLines" checked class="w-3.5 h-3.5 rounded accent-sky-400" />
+            <span>白枠・レーン線</span>
+          </label>
+          <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700 cursor-pointer">
+            <input type="checkbox" id="chkShowSubGrid" class="w-3.5 h-3.5 rounded accent-sky-400" />
+            <span>細分割グリッド線</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="w-full max-w-[1080px] mx-auto relative rounded-xl overflow-hidden canvas-shadow bg-black flex items-center justify-center">
+        <canvas id="previewCanvas" width="1120" height="630" class="w-full h-auto block"></canvas>
+      </div>
+    </section>
+
+    <!-- BOTTOM SECTION: Left = Tools Tab, Right = Palette -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+      <!-- LEFT COLUMN: Tools & Controls -->
+      <section class="lg:col-span-5 flex flex-col gap-3 bg-slate-900/75 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+        
+        <!-- 1. Tool Selector & Copy/Paste -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">1. ツール ＆ コピー操作</span>
+            <span id="statusToast" class="text-[11px] text-sky-400 font-medium truncate max-w-[200px]">パレット上で作成・編集</span>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5 mb-1.5">
+            <button data-mode="draw" class="tool-btn active px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-800/90 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              <span>描画・編集</span>
+            </button>
+            <button data-mode="eraser" class="tool-btn px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-800/90 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>消しゴム</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5">
+            <button id="btnCopyShape" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition disabled:opacity-40 flex items-center justify-center gap-1" title="選択図形をコピー (Ctrl+C)">
+              <span>📋 コピー</span>
+            </button>
+            <button id="btnPasteShape" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition disabled:opacity-40 flex items-center justify-center gap-1" title="コピーした図形を貼り付け (Ctrl+V)">
+              <span>📥 ペースト</span>
+            </button>
+            <button id="btnDeleteShape" class="px-2 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/70 border border-rose-800/50 text-xs font-medium text-rose-200 transition disabled:opacity-40 flex items-center justify-center gap-1" title="選択図形を削除 (Delete)">
+              <span>✕ 削除</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Color Selector (2x2 Rounded Squares), Relay Point Add/Delete, & Grid Setting (+/-) -->
+        <div class="pt-2.5 border-t border-slate-800/80 grid grid-cols-12 gap-2.5 items-stretch">
+          <!-- Left: 2x2 Color Swatches (No names) -->
+          <div class="col-span-4 flex flex-col items-center justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 self-start mb-1">2. 色選択</span>
+            <div class="grid grid-cols-2 gap-2 p-2 bg-slate-950/70 border border-slate-800/90 rounded-2xl w-full flex-1 place-items-center" id="colorPaletteContainer">
+              <!-- Green (Guide: Gradient) -->
+              <button data-color="green" class="color-swatch active w-10 h-10 rounded-2xl border border-emerald-400/60 transition" style="color: #00e676; background: linear-gradient(0deg, #00e676 0%, rgba(0,230,118,0.12) 100%);" title="ガイド (#00E676)"></button>
+              <!-- YellowGreen (Slide: #52FFBD) -->
+              <button data-color="yellowgreen" class="color-swatch w-10 h-10 rounded-2xl border border-teal-300/60 transition" style="color: #52FFBD; background: #52FFBD;" title="スライド (#52FFBD)"></button>
+              <!-- Orange (Gold Guide: #FFCD42 Gradient) -->
+              <button data-color="orange" class="color-swatch w-10 h-10 rounded-2xl border border-amber-300/60 transition" style="color: #FFCD42; background: linear-gradient(0deg, #FFCD42 0%, rgba(255,205,66,0.12) 100%);" title="金ガイド (#FFCD42)"></button>
+              <!-- Yellow (Gold Slide: #FEF7A9) -->
+              <button data-color="yellow" class="color-swatch w-10 h-10 rounded-2xl border border-yellow-200/60 transition" style="color: #FEF7A9; background: #FEF7A9;" title="金スライド (#FEF7A9)"></button>
+            </div>
+          </div>
+
+          <!-- Center: Relay Point (Waypoint) Add / Remove Mode Toggle Controls -->
+          <div class="col-span-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">中継点</span>
+              <span id="lblSelectedNodeInfo" class="text-[10px] font-mono text-amber-300 font-semibold truncate max-w-[95px]">未選択</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-2 flex flex-col justify-center gap-1.5 flex-1">
+              <button id="btnAddRelayPoint" class="relay-mode-btn w-full py-2 rounded-xl bg-fuchsia-600/20 hover:bg-fuchsia-600/35 border border-fuchsia-500/40 text-fuchsia-200 text-xs font-semibold transition disabled:opacity-40 flex items-center justify-center gap-1" title="ONにして選択中の図形をクリックすると中継点を配置します">
+                <span>＋ 中継点追加</span>
+              </button>
+              <button id="btnDeleteRelayPoint" class="relay-mode-btn w-full py-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 border border-slate-700 text-slate-300 hover:text-rose-200 text-xs font-medium transition disabled:opacity-40 flex items-center justify-center gap-1" title="ONにして選択図形の中継点をクリックすると削除します">
+                <span>－ 中継点削除</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Grid Setting (+/- buttons for 4,8,16,32,64,128,192,1920) -->
+          <div class="col-span-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">3. グリッド</span>
+              <span class="text-[10px] text-slate-500 font-mono">12×N</span>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-2 flex flex-col items-center justify-center gap-1.5 flex-1">
+              <div class="flex items-center justify-between w-full gap-1">
+                <button id="btnGridMinus" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-base font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を減らす">
+                  －
+                </button>
+                <div class="flex flex-col items-center">
+                  <span id="lblCurrentGridRows" class="text-lg font-bold font-mono text-sky-300 tracking-tight">16</span>
+                  <span class="text-[9px] text-slate-400">縦分割</span>
+                </div>
+                <button id="btnGridPlus" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-base font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を増やす">
+                  ＋
+                </button>
+              </div>
+              <div class="text-[9px] font-mono text-slate-500 tracking-tighter text-center leading-tight">
+                4/8/16/32/64/128/192/1920
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3.5 Opacity Settings (Slide & Guide) -->
+        <div class="pt-2.5 border-t border-slate-800/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">透明度設定</span>
+            <span class="text-[10px] text-slate-400">※ガイドのみ上へ向かって透明化</span>
+          </div>
+          <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-2.5 space-y-2">
+            <!-- Slide Opacity (#52FFBD, #FEF7A9) -->
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-28 text-slate-300 font-medium flex items-center gap-1.5 shrink-0">
+                <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#52FFBD;"></span>
+                <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#FEF7A9;"></span>
+                <span>スライド</span>
+              </span>
+              <input type="range" id="rngSlideOpacity" min="5" max="100" value="85" class="flex-1 h-1.5 bg-slate-800 rounded-lg cursor-pointer" />
+              <span id="lblSlideOpacity" class="w-10 text-right font-mono text-[11px] text-sky-300">85%</span>
+            </div>
+            <!-- Guide Opacity (#00E676, #FFCD42) -->
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-28 text-slate-300 font-medium flex items-center gap-1.5 shrink-0">
+                <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#00e676;"></span>
+                <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#FFCD42;"></span>
+                <span>ガイド</span>
+              </span>
+              <input type="range" id="rngGuideOpacity" min="5" max="100" value="85" class="flex-1 h-1.5 bg-slate-800 rounded-lg cursor-pointer" />
+              <span id="lblGuideOpacity" class="w-10 text-right font-mono text-[11px] text-emerald-300">85%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Curve Setting -->
+        <div id="curveControlBox" class="pt-2.5 border-t border-slate-800/80 space-y-2 transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">4. カーブ設定</span>
+            <span id="lblCurveModeName" class="text-[11px] font-mono text-fuchsia-300 font-semibold">直線 ｜ ｜</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5" id="curveTypeButtons">
+            <button data-curve="straight" class="curve-btn active px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-semibold transition flex flex-col items-center gap-0.5">
+              <span class="font-mono text-sm">｜ ｜</span>
+              <span class="text-[11px]">直線</span>
+            </button>
+            <button data-curve="left" class="curve-btn px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-semibold transition flex flex-col items-center gap-0.5">
+              <span class="font-mono text-sm">（ （</span>
+              <span class="text-[11px]">カーブ（（</span>
+            </button>
+            <button data-curve="right" class="curve-btn px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-semibold transition flex flex-col items-center gap-0.5">
+              <span class="font-mono text-sm">） ）</span>
+              <span class="text-[11px]">カーブ））</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. Layer Panel (Collapsible) -->
+        <div class="pt-2.5 border-t border-slate-800/80 flex flex-col">
+          <div class="flex items-center justify-between">
+            <button type="button" data-collapse-target="layerPanelBody" data-collapse-arrow="layerPanelArrow" class="flex items-center gap-1.5 text-left py-0.5 hover:opacity-80 transition">
+              <span id="layerPanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">5. レイヤー管理</span>
+              <span id="lblLayerCount" class="text-[11px] text-sky-400 font-mono">(0)</span>
+            </button>
+            <div class="flex items-center gap-1">
+              <button id="btnLayerUp" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-200 disabled:opacity-40" title="選択レイヤーを前面(上)へ">▲ 上へ</button>
+              <button id="btnLayerDown" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-200 disabled:opacity-40" title="選択レイヤーを背面(下)へ">▼ 下へ</button>
+            </div>
+          </div>
+
+          <div id="layerPanelBody" class="flex flex-col gap-2 mt-2">
+            <!-- Multi-select & Lock Selected Layer Movement -->
+            <div class="flex items-center justify-between gap-1 text-[11px] bg-slate-950/70 border border-slate-800/80 rounded-lg px-2 py-1.5">
+              <label class="flex items-center gap-1.5 text-slate-200 cursor-pointer select-none" title="ONにするとパレット上で選択中のレイヤーのみ移動・変形でき、他の図形が誤って動くのを防ぎます">
+                <input type="checkbox" id="chkOnlyMoveSelected" class="w-3.5 h-3.5 rounded accent-sky-400" />
+                <span class="font-medium text-sky-300">指定レイヤーのみ移動・編集</span>
+              </label>
+              <div class="flex items-center gap-1 shrink-0">
+                <button id="btnSelectAllLayers" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300">全選択</button>
+                <button id="btnDeselectAllLayers" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-400">解除</button>
+              </div>
+            </div>
+
+            <!-- Layer List -->
+            <div id="layerListContainer" class="max-h-44 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-1.5"></div>
+          </div>
+        </div>
+
+        <!-- 6. Shape Template Save & List (Collapsible) -->
+        <div class="pt-2.5 border-t border-slate-800/80 flex flex-col">
+          <button type="button" data-collapse-target="templatePanelBody" data-collapse-arrow="templatePanelArrow" class="flex items-center justify-between w-full text-left py-0.5 hover:opacity-80 transition">
+            <div class="flex items-center gap-1.5">
+              <span id="templatePanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">6. 図形テンプレート保存</span>
+            </div>
+            <span id="lblTemplateCount" class="text-[11px] text-slate-400">0件</span>
+          </button>
+
+          <div id="templatePanelBody" class="flex flex-col gap-2 mt-2">
+            <div class="flex gap-1.5">
+              <input type="text" id="inpTemplateName" placeholder="テンプレート名" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+              <button id="btnSaveTemplate" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shrink-0 disabled:opacity-40">
+                ＋ 保存
+              </button>
+            </div>
+            <div id="templateListContainer" class="max-h-32 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2"></div>
+          </div>
+        </div>
+
+        <!-- 7. Full Palette Save & List (Collapsible) -->
+        <div class="pt-2.5 border-t border-slate-800/80 flex flex-col">
+          <button type="button" data-collapse-target="paletteSavePanelBody" data-collapse-arrow="paletteSavePanelArrow" class="flex items-center justify-between w-full text-left py-0.5 hover:opacity-80 transition">
+            <div class="flex items-center gap-1.5">
+              <span id="paletteSavePanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">7. パレット全体保存</span>
+            </div>
+            <span id="lblSavedPaletteCount" class="text-[11px] text-emerald-400">0件</span>
+          </button>
+
+          <div id="paletteSavePanelBody" class="flex flex-col gap-2 mt-2">
+            <div class="flex gap-1.5">
+              <input type="text" id="inpPaletteSaveName" placeholder="パレット全体の名前" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+              <button id="btnSaveFullPalette" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shrink-0">
+                ＋ 全体保存
+              </button>
+            </div>
+            <div id="savedPaletteListContainer" class="max-h-36 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT COLUMN: Enlarged 12×N Grid Palette Editor -->
+      <section class="lg:col-span-7 flex flex-col items-center bg-slate-900/75 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+        <div class="w-full flex items-center justify-between mb-2">
+          <div>
+            <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
+              <span>パレット (<span id="lblPaletteTitleDims">12×16</span>)</span>
+              <span id="lblLastWidthBadge" class="text-[11px] font-mono font-normal px-2 py-0.5 rounded-md bg-slate-800 text-sky-300 border border-slate-700">新規幅: 2マス</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">●ドラッグで移動</p>
+          </div>
+        </div>
+
+        <div class="relative flex items-center justify-center my-1 w-full">
+          <canvas id="paletteCanvas" width="600" height="760" class="rounded-xl canvas-shadow bg-[#07090e] cursor-crosshair touch-none max-w-full h-auto"></canvas>
+        </div>
+
+        <div class="w-full mt-2 flex items-center justify-between text-xs bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5">
+          <span id="lblHoverTarget" class="text-slate-400 truncate">カーソル位置 (左下起点):</span>
+          <span id="lblCursorCell" class="font-mono text-sky-300 font-semibold shrink-0">X: - , Y: -</span>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <script>
+    const GRID_COLS = 12;
+    const MAX_FINE_DIVISIONS = 1920;
+    const ALLOWED_ROW_DIVISIONS = [4, 8, 16, 32, 64, 128, 192, 1920];
+    const STORAGE_KEY_PALETTE = 'dot_persp_palette_autosave_v3';
+    const STORAGE_KEY_TEMPLATES = 'dot_persp_shape_templates_v3';
+    const STORAGE_KEY_SAVED_PALETTES = 'dot_persp_saved_palettes_v1';
+
+    // Updated Colors:
+    // Guide: green (#00e676), Gold Guide: orange (#FFCD42) -> fade to transparent
+    // Slide: yellowgreen (#52FFBD), Gold Slide: yellow (#FEF7A9) -> solid opacity
+    const COLORS = {
+      green: {
+        id: 'green',
+        name: 'ガイド',
+        hex: '#00e676',
+        rgb: [0, 230, 118],
+        type: 'guide',
+        fadeToTransparent: true
+      },
+      yellowgreen: {
+        id: 'yellowgreen',
+        name: 'スライド',
+        hex: '#52FFBD',
+        rgb: [82, 255, 189],
+        type: 'slide',
+        fadeToTransparent: false
+      },
+      yellow: {
+        id: 'yellow',
+        name: '金スライド',
+        hex: '#FEF7A9',
+        rgb: [254, 247, 169],
+        type: 'slide',
+        fadeToTransparent: false
+      },
+      orange: {
+        id: 'orange',
+        name: '金ガイド',
+        hex: '#FFCD42',
+        rgb: [255, 205, 66],
+        type: 'guide',
+        fadeToTransparent: true
+      }
+    };
+
+    const CURVE_MODES = {
+      straight: '直線 ｜ ｜',
+      left: 'カーブ （ （',
+      right: 'カーブ ） ）'
+    };
+
+    const PERSP_GEOM = {
+      topY: 0.118,
+      topLeftX: 0.480,
+      topRightX: 0.520,
+      botY: 0.813,
+      botLeftX: 0.152,
+      botRightX: 0.848,
+      numMainLanes: 6,
+      verticalStopsFromTop: [
+        0.0000,
+        0.0291,
+        0.0676,
+        0.1180,
+        0.1842,
+        0.2719,
+        0.3885,
+        0.5942,
+        0.8317,
+        1.0000
+      ]
+    };
+
+    // Calculate smooth continuous progression rate k from the interior vertical intervals
+    // (excluding the top-most interval [0..1] and bottom-most interval [8..9]) so that
+    // vertical spacing changes smoothly without piecewise-linear kinks at horizontal lines.
+    const SMOOTH_PERSP_K = (() => {
+      const stops = PERSP_GEOM.verticalStopsFromTop;
+      const allDiffs = [];
+      for (let i = 0; i < stops.length - 1; i++) {
+        allDiffs.push(stops[i + 1] - stops[i]);
+      }
+      const interiorDiffs = allDiffs.slice(1, -1);
+      let logRatioSum = 0;
+      for (let i = 0; i < interiorDiffs.length - 1; i++) {
+        logRatioSum += Math.log(interiorDiffs[i + 1] / interiorDiffs[i]);
+      }
+      const avgStepLogRatio = logRatioSum / (interiorDiffs.length - 1);
+      return avgStepLogRatio * (stops.length - 1);
+    })();
+
+    const state = {
+      mode: 'draw',
+      relaySubMode: null, // null | 'add' | 'delete'
+      gridRows: 16,
+      lastUsedWidth: 2,   // Remembered width when drawing new shapes
+      currentColor: 'green',
+      currentCurveMode: 'straight',
+      slideOpacity: 0.85,
+      guideOpacity: 0.85,
+      showMainLines: true,
+      showSubGrid: false,
+      onlyMoveSelected: false,
+      grid: Array.from({ length: 16 }, () => Array(GRID_COLS).fill(null)),
+      shapes: [],
+      selectedShapeIds: [], // Supports multi-selection of layers
+      activeShapeId: null,  // Primary selected shape for handle/node editing
+      activeNodeIndex: 0,   // Selected node index (0 = start, 1..n-2 = relay, n-1 = end)
+      clipboardShapes: [],
+      templates: [],
+      savedPalettes: [],
+      directoryHandle: null,
+      history: []
+    };
+
+    // Hover state for previewing what will be selected, added, deleted, or drawn on the palette
+    const hoverState = {
+      inside: false,
+      col: 0,
+      row: 0,
+      px: 0,
+      py: 0,
+      type: null, // 'handleLeft' | 'handleRight' | 'handleCenter' | 'relayAdd' | 'relayDelete' | 'shape' | 'eraseShape' | 'newShapePreview'
+      shapeId: null,
+      nodeIndex: -1,
+      segIndex: -1,
+      insertY: 0,
+      insertLeft: 0,
+      insertRight: 2,
+      label: ''
+    };
+
+    const paletteCanvas = document.getElementById('paletteCanvas');
+    const paletteCtx = paletteCanvas.getContext('2d');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const previewCtx = previewCanvas.getContext('2d');
+
+    const PALETTE_PAD = { left: 48, right: 22, top: 22, bottom: 36 };
+    const PLOT_W = paletteCanvas.width - PALETTE_PAD.left - PALETTE_PAD.right;
+    const PLOT_H = paletteCanvas.height - PALETTE_PAD.top - PALETTE_PAD.bottom;
+    const CELL_W = PLOT_W / GRID_COLS;
+
+    function getCellH() {
+      return PLOT_H / state.gridRows;
+    }
+
+    // 1 unit of 1920 division expressed in current state.gridRows coordinates
+    function getMinFineStepY(rows = state.gridRows) {
+      return rows / MAX_FINE_DIVISIONS;
+    }
+
+    function snapFine1920(val, min, max, rows = state.gridRows) {
+      const step = getMinFineStepY(rows);
+      const snapped = Math.round(val / step) * step;
+      return Math.max(min, Math.min(max, Number(snapped.toFixed(6))));
+    }
+
+    function formatYValue(y, rows = state.gridRows) {
+      if (Math.abs(y - Math.round(y)) < 1e-4) {
+        return String(Math.round(y));
+      }
+      const pos1920 = Math.round((y / rows) * MAX_FINE_DIVISIONS);
+      return `${y.toFixed(2)} (${pos1920}/1920)`;
+    }
+
+    function setLastUsedWidth(w) {
+      const clamped = Math.max(1, Math.min(GRID_COLS, Math.round(w)));
+      state.lastUsedWidth = clamped;
+      const badge = document.getElementById('lblLastWidthBadge');
+      if (badge) {
+        badge.textContent = `新規幅: ${clamped}マス`;
+      }
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('statusToast');
+      if (el) el.textContent = msg;
+    }
+
+    // Ensure any shape object has a valid `nodes` array ordered from bottom to top
+    function normalizeShape(raw, rows = state.gridRows) {
+      const color = COLORS[raw.color] ? raw.color : 'green';
+      const fineStep = getMinFineStepY(rows);
+      let nodes = [];
+      if (Array.isArray(raw.nodes) && raw.nodes.length >= 2) {
+        nodes = raw.nodes.map(n => ({
+          left: snapInt(n.left ?? 0, 0, GRID_COLS - 1),
+          right: snapInt(n.right ?? 1, 1, GRID_COLS),
+          y: snapFine1920(n.y ?? 0, 0, rows, rows),
+          curveMode: ['straight', 'left', 'right'].includes(n.curveMode) ? n.curveMode : 'straight'
+        }));
+      } else {
+        const sL = snapInt(raw.startLeft ?? 2, 0, GRID_COLS - 1);
+        const sR = Math.max(sL + 1, snapInt(raw.startRight ?? sL + 2, 1, GRID_COLS));
+        const sY = snapFine1920(raw.startY ?? 0, 0, rows - fineStep, rows);
+        const eL = snapInt(raw.endLeft ?? sL, 0, GRID_COLS - 1);
+        const eR = Math.max(eL + 1, snapInt(raw.endRight ?? sR, 1, GRID_COLS));
+        const eY = Math.max(sY + fineStep, snapFine1920(raw.endY ?? rows, fineStep, rows, rows));
+        const cMode = ['straight', 'left', 'right'].includes(raw.curveMode) ? raw.curveMode : 'straight';
+        nodes = [
+          { left: sL, right: sR, y: sY, curveMode: cMode },
+          { left: eL, right: eR, y: eY, curveMode: 'straight' }
+        ];
+      }
+      // Ensure left < right and strictly increasing Y (at least 1/1920 step apart)
+      for (let i = 0; i < nodes.length; i++) {
+        nodes[i].left = snapInt(nodes[i].left, 0, GRID_COLS - 1);
+        nodes[i].right = Math.max(nodes[i].left + 1, snapInt(nodes[i].right, 1, GRID_COLS));
+        if (i > 0 && nodes[i].y <= nodes[i - 1].y) {
+          nodes[i].y = snapFine1920(nodes[i - 1].y + fineStep, 0, rows, rows);
+        }
+      }
+      return {
+        id: raw.id || ('shape_' + Date.now() + '_' + Math.floor(Math.random() * 1000)),
+        name: raw.name || '',
+        color,
+        nodes
+      };
+    }
+
+    /**
+     * Snap node Y to the current grid, EXCEPT when brought close to another node (prevY or nextY),
+     * where it seamlessly switches to 1920-division resolution so it can approach within 1/1920 step
+     * in front of or behind the neighboring node regardless of the current grid division.
+     */
+    function computeNodeSnappedY(rawRowFloat, minYLimit, maxYLimit, prevY, nextY) {
+      const rows = state.gridRows;
+      const step1920 = getMinFineStepY(rows);
+      const minAllowed = prevY !== null ? prevY + step1920 : minYLimit;
+      const maxAllowed = nextY !== null ? nextY - step1920 : maxYLimit;
+
+      if (minAllowed >= maxAllowed) {
+        return Number(minAllowed.toFixed(6));
+      }
+
+      // Check proximity to previous or next node (within ~0.85 of a grid cell)
+      const nearThreshold = Math.max(step1920 * 4, 0.85);
+      const distPrev = prevY !== null ? Math.abs(rawRowFloat - prevY) : Infinity;
+      const distNext = nextY !== null ? Math.abs(rawRowFloat - nextY) : Infinity;
+
+      if (distPrev <= nearThreshold || distNext <= nearThreshold) {
+        return snapFine1920(rawRowFloat, minAllowed, maxAllowed, rows);
+      }
+
+      const gridSnapped = snapInt(rawRowFloat, 0, rows);
+      if (gridSnapped < minAllowed) {
+        return Number(minAllowed.toFixed(6));
+      }
+      if (gridSnapped > maxAllowed) {
+        return Number(maxAllowed.toFixed(6));
+      }
+      return gridSnapped;
+    }
+
+    function saveHistory() {
+      const snapshot = {
+        gridRows: state.gridRows,
+        grid: state.grid.map(row => row.map(cell => (cell ? { ...cell } : null))),
+        shapes: JSON.parse(JSON.stringify(state.shapes)),
+        selectedShapeIds: [...state.selectedShapeIds],
+        activeShapeId: state.activeShapeId,
+        activeNodeIndex: state.activeNodeIndex
+      };
+      state.history.push(snapshot);
+      if (state.history.length > 35) state.history.shift();
+      updateUndoButton();
+    }
+
+    function undo() {
+      if (state.history.length === 0) return;
+      const last = state.history.pop();
+      state.gridRows = last.gridRows;
+      state.grid = last.grid;
+      state.shapes = last.shapes.map(normalizeShape);
+      state.selectedShapeIds = last.selectedShapeIds || [];
+      state.activeShapeId = last.activeShapeId;
+      state.activeNodeIndex = last.activeNodeIndex || 0;
+      updateUndoButton();
+      updateGridDivisionUI();
+      syncUIWithSelectedShape();
+      renderAll();
+      triggerAutoSave();
+    }
+
+    function updateUndoButton() {
+      document.getElementById('btnUndo').disabled = state.history.length === 0;
+    }
+
+    function getColorRgba(colorId, alpha = 1) {
+      const c = COLORS[colorId] || COLORS.green;
+      const clampedAlpha = Math.max(0, Math.min(1, alpha));
+      return `rgba(${c.rgb[0]}, ${c.rgb[1]}, ${c.rgb[2]}, ${clampedAlpha.toFixed(3)})`;
+    }
+
+    function gridToPaletteXY(col, rowFromBot) {
+      const cellH = getCellH();
+      return {
+        x: PALETTE_PAD.left + col * CELL_W,
+        y: PALETTE_PAD.top + (state.gridRows - rowFromBot) * cellH
+      };
+    }
+
+    function paletteXYToGrid(px, py) {
+      const cellH = getCellH();
+      const col = (px - PALETTE_PAD.left) / CELL_W;
+      const rowFromTop = (py - PALETTE_PAD.top) / cellH;
+      const rowFromBot = state.gridRows - rowFromTop;
+      return {
+        col: Math.max(0, Math.min(GRID_COLS, col)),
+        row: Math.max(0, Math.min(state.gridRows, rowFromBot))
+      };
+    }
+
+    function snapInt(val, min, max) {
+      return Math.max(min, Math.min(max, Math.round(val)));
+    }
+
+    function mapLinearFromTopToPerspectiveT(vFromTop) {
+      const clamped = Math.max(0, Math.min(1, vFromTop));
+      // Smooth exponential foreshortening curve derived from the interior interval growth rate
+      return (Math.exp(SMOOTH_PERSP_K * clamped) - 1) / (Math.exp(SMOOTH_PERSP_K) - 1);
+    }
+
+    function uvToPerspectiveXY(u, vFromTop) {
+      const W = previewCanvas.width;
+      const H = previewCanvas.height;
+      const t = mapLinearFromTopToPerspectiveT(vFromTop);
+      const y = (PERSP_GEOM.topY + t * (PERSP_GEOM.botY - PERSP_GEOM.topY)) * H;
+      const leftX = (PERSP_GEOM.topLeftX + t * (PERSP_GEOM.botLeftX - PERSP_GEOM.topLeftX)) * W;
+      const rightX = (PERSP_GEOM.topRightX + t * (PERSP_GEOM.botRightX - PERSP_GEOM.topRightX)) * W;
+      const x = leftX + u * (rightX - leftX);
+      return { x, y };
+    }
+
+    function gridToPerspectiveXY(col, rowFromBot) {
+      const u = col / GRID_COLS;
+      const vFromTop = 1 - (rowFromBot / state.gridRows);
+      return uvToPerspectiveXY(u, vFromTop);
+    }
+
+    /**
+     * Evaluates a single edge (left or right) from x0 (at segment start) to x1 (at segment end)
+     * at local segment progress localTau in [0, 1] according to the user's exact rules:
+     * 1. If X coordinates are equal (x0 === x1), it becomes a straight line.
+     * 2. If curveMode is 'right' (） ）):
+     *    - If x0 < x1 (start is left of end): curves as ） (bows right -> easeOut)
+     *    - If x0 > x1 (start is right of end): curves as （ (bows left  -> easeOut)
+     * 3. If curveMode is 'left' (（ （):
+     *    - If x0 < x1 (start is left of end): curves as （ (bows left  -> easeIn)
+     *    - If x0 > x1 (start is right of end): curves as ） (bows right -> easeIn)
+     * 4. Left edge and right edge each follow the rule above independently based on their own x0, x1.
+     */
+    function evaluateSingleEdgeAtTau(x0, x1, mode, localTau) {
+      if (x0 === x1 || mode === 'straight') {
+        return x0 + (x1 - x0) * localTau;
+      }
+      const easeIn = localTau * localTau;
+      const easeOut = 1 - (1 - localTau) * (1 - localTau);
+
+      if (mode === 'right') {
+        // ）） mode: x0 < x1 => ） (bows right), x0 > x1 => （ (bows left)
+        return x0 + (x1 - x0) * easeOut;
+      } else if (mode === 'left') {
+        // （（ mode: x0 < x1 => （ (bows left), x0 > x1 => ） (bows right)
+        return x0 + (x1 - x0) * easeIn;
+      }
+      return x0 + (x1 - x0) * localTau;
+    }
+
+    function evaluateSegmentEdgesAtTau(node0, node1, localTau) {
+      const mode = node0.curveMode || 'straight';
+      const leftCol = evaluateSingleEdgeAtTau(node0.left, node1.left, mode, localTau);
+      const rightCol = evaluateSingleEdgeAtTau(node0.right, node1.right, mode, localTau);
+      return { leftCol, rightCol };
+    }
+
+    function evaluateSegmentPoint(node0, node1, s, localTau) {
+      const row = node0.y + localTau * (node1.y - node0.y);
+      const { leftCol, rightCol } = evaluateSegmentEdgesAtTau(node0, node1, localTau);
+      const col = leftCol + s * (rightCol - leftCol);
+      return { col, row };
+    }
+
+    function getShapeAlphaAtRow(shape, row) {
+      const colorObj = COLORS[shape.color] || COLORS.green;
+      const nodes = shape.nodes;
+      const startY = nodes[0].y;
+      const endY = nodes[nodes.length - 1].y;
+      const totalSpan = Math.max(0.001, endY - startY);
+      const overallTau = Math.max(0, Math.min(1, (row - startY) / totalSpan));
+
+      if (colorObj.fadeToTransparent) {
+        // Guide / Gold Guide: fade from guideOpacity at bottom (overallTau=0) to 0 at top (overallTau=1)
+        return state.guideOpacity * (1 - overallTau);
+      } else {
+        // Slide / Gold Slide: uniform slideOpacity
+        return state.slideOpacity;
+      }
+    }
+
+    function isPointInsideShape(shape, col, row) {
+      const nodes = shape.nodes;
+      if (!nodes || nodes.length < 2) return false;
+      if (row < nodes[0].y || row > nodes[nodes.length - 1].y) return false;
+
+      for (let k = 0; k < nodes.length - 1; k++) {
+        const n0 = nodes[k];
+        const n1 = nodes[k + 1];
+        if (row >= n0.y && row <= n1.y) {
+          const spanY = n1.y - n0.y;
+          const localTau = spanY <= 0 ? 0 : (row - n0.y) / spanY;
+          const { leftCol, rightCol } = evaluateSegmentEdgesAtTau(n0, n1, localTau);
+          if (col >= Math.min(leftCol, rightCol) - 0.15 && col <= Math.max(leftCol, rightCol) + 0.15) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function renderPalette() {
+      const ctx = paletteCtx;
+      const W = paletteCanvas.width;
+      const H = paletteCanvas.height;
+      const rows = state.gridRows;
+      const cellH = getCellH();
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#07090e';
+      ctx.fillRect(0, 0, W, H);
+
+      const gx0 = PALETTE_PAD.left;
+      const gy0 = PALETTE_PAD.top;
+      const gw = GRID_COLS * CELL_W;
+      const gh = PLOT_H;
+
+      ctx.fillStyle = '#0c1017';
+      ctx.fillRect(gx0, gy0, gw, gh);
+
+      // 1. Render painted grid cells (if any)
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < GRID_COLS; c++) {
+          const cell = state.grid[r] && state.grid[r][c];
+          if (cell && cell.alpha > 0.005) {
+            const topLeft = gridToPaletteXY(c, r + 1);
+            ctx.fillStyle = getColorRgba(cell.color, cell.alpha);
+            ctx.fillRect(topLeft.x, topLeft.y, CELL_W, Math.max(0.8, cellH));
+          }
+        }
+      }
+
+      // 2. Render smooth shapes in layer order (bottom to top)
+      for (const shape of state.shapes) {
+        drawSmoothShapeOnPalette(ctx, shape);
+      }
+
+      // 3. Draw vertical grid lines & bottom X numbers (1..12 from left to right at bottom)
+      ctx.save();
+      ctx.font = '11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let c = 0; c <= GRID_COLS; c++) {
+        const x = gx0 + c * CELL_W;
+        const isMainLane = c % 2 === 0;
+        ctx.beginPath();
+        ctx.moveTo(x, gy0);
+        ctx.lineTo(x, gy0 + gh);
+        ctx.strokeStyle = isMainLane ? 'rgba(255, 255, 255, 0.30)' : 'rgba(148, 163, 184, 0.15)';
+        ctx.lineWidth = isMainLane ? 1.25 : 0.75;
+        ctx.stroke();
+
+        if (c < GRID_COLS) {
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillText(String(c + 1), x + CELL_W / 2, gy0 + gh + 18);
+        }
+      }
+
+      // 4. Draw horizontal grid lines & left Y numbers starting from bottom-left (1..rows)
+      const drawLineStep = rows >= 1920 ? 30 : (rows >= 192 ? 2 : 1);
+      const quarterStep = Math.max(1, Math.round(rows / 4));
+      const sixteenthStep = Math.max(1, Math.round(rows / 16));
+
+      for (let r = 0; r <= rows; r += drawLineStep) {
+        const y = gy0 + (rows - r) * cellH;
+        const isQuarter = (r % quarterStep === 0);
+        const isSixteenth = (r % sixteenthStep === 0);
+
+        ctx.beginPath();
+        ctx.moveTo(gx0, y);
+        ctx.lineTo(gx0 + gw, y);
+        if (isQuarter) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.30)';
+          ctx.lineWidth = 1.2;
+        } else if (isSixteenth) {
+          ctx.strokeStyle = 'rgba(203, 213, 225, 0.18)';
+          ctx.lineWidth = 0.85;
+        } else {
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.09)';
+          ctx.lineWidth = 0.6;
+        }
+        ctx.stroke();
+      }
+
+      let labelStep = 1;
+      if (rows === 32) labelStep = 2;
+      else if (rows === 64) labelStep = 4;
+      else if (rows === 128) labelStep = 8;
+      else if (rows === 192) labelStep = 12;
+      else if (rows === 1920) labelStep = 120;
+
+      ctx.textAlign = 'right';
+      for (let rowNum = 1; rowNum <= rows; rowNum++) {
+        if (rowNum === 1 || rowNum === rows || rowNum % labelStep === 0) {
+          if (rowNum !== 1 && rowNum - 1 < labelStep * 0.6 && rows > 16) continue;
+          const centerRowFromBot = rowNum - 0.5;
+          const y = gy0 + (rows - centerRowFromBot) * cellH;
+          ctx.fillStyle = rowNum === 1 ? '#38bdf8' : '#94a3b8';
+          ctx.fillText(String(rowNum), gx0 - 8, y);
+        }
+      }
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.68)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(gx0, gy0, gw, gh);
+      ctx.restore();
+
+      // 5. Draw selection outlines for all selected shapes, and detailed handles for the active shape
+      if (state.mode === 'draw') {
+        const selectedShapes = getSelectedShapes();
+        for (const sh of selectedShapes) {
+          const isPrimary = sh.id === state.activeShapeId;
+          drawShapeHandlesOnPalette(ctx, sh, isPrimary);
+        }
+      }
+
+      // 6. Draw hover preview (target shape outline, handle highlight, relay placement preview, or new shape ghost)
+      if (hoverState.inside && !dragState.active) {
+        drawHoverPreviewOnPalette(ctx);
+      }
+    }
+
+    function drawHoverPreviewOnPalette(ctx) {
+      ctx.save();
+      const N_SEG_STEPS = 28;
+
+      if (hoverState.type === 'shape' || hoverState.type === 'eraseShape') {
+        const sh = state.shapes.find(s => s.id === hoverState.shapeId);
+        if (sh && sh.nodes && sh.nodes.length >= 2) {
+          const nodes = sh.nodes;
+          const isErase = hoverState.type === 'eraseShape';
+
+          ctx.beginPath();
+          const firstL = gridToPaletteXY(nodes[0].left, nodes[0].y);
+          const firstR = gridToPaletteXY(nodes[0].right, nodes[0].y);
+          ctx.moveTo(firstL.x, firstL.y);
+          ctx.lineTo(firstR.x, firstR.y);
+
+          for (let k = 0; k < nodes.length - 1; k++) {
+            for (let i = 1; i <= N_SEG_STEPS; i++) {
+              const gPt = evaluateSegmentPoint(nodes[k], nodes[k + 1], 1, i / N_SEG_STEPS);
+              const pt = gridToPaletteXY(gPt.col, gPt.row);
+              ctx.lineTo(pt.x, pt.y);
+            }
+          }
+          for (let k = nodes.length - 2; k >= 0; k--) {
+            for (let i = N_SEG_STEPS; i >= 0; i--) {
+              const gPt = evaluateSegmentPoint(nodes[k], nodes[k + 1], 0, i / N_SEG_STEPS);
+              const pt = gridToPaletteXY(gPt.col, gPt.row);
+              ctx.lineTo(pt.x, pt.y);
+            }
+          }
+          ctx.closePath();
+
+          if (isErase) {
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.22)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(251, 113, 133, 0.95)';
+            ctx.lineWidth = 2.4;
+            ctx.stroke();
+          } else {
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.95)';
+            ctx.lineWidth = 2.4;
+            ctx.shadowColor = 'rgba(56, 189, 248, 0.6)';
+            ctx.shadowBlur = 8;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+          }
+
+          drawHoverBadge(ctx, hoverState.px, hoverState.py - 18, hoverState.label, isErase ? '#be123c' : '#0369a1');
+        }
+      } else if (hoverState.type === 'handleLeft' || hoverState.type === 'handleRight' || hoverState.type === 'handleCenter') {
+        const sh = getActiveShape();
+        const node = sh && sh.nodes[hoverState.nodeIndex];
+        if (node) {
+          let pt = null;
+          if (hoverState.type === 'handleLeft') pt = gridToPaletteXY(node.left, node.y);
+          else if (hoverState.type === 'handleRight') pt = gridToPaletteXY(node.right, node.y);
+          else pt = gridToPaletteXY((node.left + node.right) * 0.5, node.y);
+
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 13, 0, Math.PI * 2);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          drawHoverBadge(ctx, pt.x, pt.y - 22, hoverState.label, '#0284c7');
+        }
+      } else if (hoverState.type === 'relayAdd') {
+        const ptL = gridToPaletteXY(hoverState.insertLeft, hoverState.insertY);
+        const ptR = gridToPaletteXY(hoverState.insertRight, hoverState.insertY);
+        const ptC = gridToPaletteXY((hoverState.insertLeft + hoverState.insertRight) * 0.5, hoverState.insertY);
+
+        ctx.beginPath();
+        ctx.moveTo(ptL.x, ptL.y);
+        ctx.lineTo(ptR.x, ptR.y);
+        ctx.strokeStyle = '#f0abfc';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([4, 2]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        drawSquareHandle(ctx, ptL.x, ptL.y, '#e879f9', true);
+        drawSquareHandle(ctx, ptR.x, ptR.y, '#e879f9', true);
+        drawCircleHandle(ctx, ptC.x, ptC.y, 8.5, '#d946ef', '#ffffff', hoverState.label, 'top');
+      } else if (hoverState.type === 'relayDelete') {
+        const sh = getActiveShape();
+        const node = sh && sh.nodes[hoverState.nodeIndex];
+        if (node) {
+          const ptL = gridToPaletteXY(node.left, node.y);
+          const ptR = gridToPaletteXY(node.right, node.y);
+          const ptC = gridToPaletteXY((node.left + node.right) * 0.5, node.y);
+
+          ctx.beginPath();
+          ctx.moveTo(ptL.x, ptL.y);
+          ctx.lineTo(ptR.x, ptR.y);
+          ctx.strokeStyle = '#fb7185';
+          ctx.lineWidth = 3.5;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(ptC.x, ptC.y, 13, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(225, 29, 72, 0.35)';
+          ctx.fill();
+          ctx.strokeStyle = '#fda4af';
+          ctx.lineWidth = 2.2;
+          ctx.stroke();
+
+          drawHoverBadge(ctx, ptC.x, ptC.y - 22, hoverState.label, '#be123c');
+        }
+      } else if (hoverState.type === 'newShapePreview') {
+        const p00 = gridToPaletteXY(hoverState.insertLeft, 0);
+        const p10 = gridToPaletteXY(hoverState.insertRight, 0);
+        const p11 = gridToPaletteXY(hoverState.insertRight, hoverState.insertY);
+        const p01 = gridToPaletteXY(hoverState.insertLeft, hoverState.insertY);
+
+        ctx.beginPath();
+        ctx.moveTo(p00.x, p00.y);
+        ctx.lineTo(p10.x, p10.y);
+        ctx.lineTo(p11.x, p11.y);
+        ctx.lineTo(p01.x, p01.y);
+        ctx.closePath();
+
+        ctx.fillStyle = getColorRgba(state.currentColor, 0.22);
+        ctx.fill();
+        ctx.strokeStyle = getColorRgba(state.currentColor, 0.8);
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        drawHoverBadge(ctx, (p01.x + p11.x) * 0.5, p01.y - 12, hoverState.label, '#334155');
+      }
+
+      ctx.restore();
+    }
+
+    function drawHoverBadge(ctx, x, y, text, bgColor = '#0284c7') {
+      if (!text) return;
+      ctx.save();
+      ctx.font = 'bold 10px "Noto Sans JP", sans-serif';
+      const padX = 7;
+      const textW = ctx.measureText(text).width;
+      const boxW = textW + padX * 2;
+      const boxH = 19;
+      const clampedX = Math.max(PALETTE_PAD.left + boxW / 2, Math.min(paletteCanvas.width - PALETTE_PAD.right - boxW / 2, x));
+      const clampedY = Math.max(14, Math.min(paletteCanvas.height - 14, y));
+
+      ctx.fillStyle = bgColor;
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(clampedX - boxW / 2, clampedY - boxH / 2, boxW, boxH, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, clampedX, clampedY);
+      ctx.restore();
+    }
+
+    function drawSmoothShapeOnPalette(ctx, shape) {
+      const nodes = shape.nodes;
+      if (!nodes || nodes.length < 2) return;
+      const N_S = 20;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(PALETTE_PAD.left, PALETTE_PAD.top, GRID_COLS * CELL_W, PLOT_H);
+      ctx.clip();
+
+      for (let k = 0; k < nodes.length - 1; k++) {
+        const n0 = nodes[k];
+        const n1 = nodes[k + 1];
+        const steps = Math.max(24, Math.min(60, Math.round(60 / (nodes.length - 1))));
+
+        for (let i = 0; i < steps; i++) {
+          const tau0 = i / steps;
+          const tau1 = (i + 1) / steps;
+          const rowMid = n0.y + ((tau0 + tau1) * 0.5) * (n1.y - n0.y);
+          const alpha = getShapeAlphaAtRow(shape, rowMid);
+          if (alpha <= 0.003) continue;
+
+          ctx.beginPath();
+          for (let j = 0; j <= N_S; j++) {
+            const s = j / N_S;
+            const gPt = evaluateSegmentPoint(n0, n1, s, tau0);
+            const pPt = gridToPaletteXY(gPt.col, gPt.row);
+            if (j === 0) ctx.moveTo(pPt.x, pPt.y);
+            else ctx.lineTo(pPt.x, pPt.y);
+          }
+          for (let j = N_S; j >= 0; j--) {
+            const s = j / N_S;
+            const gPt = evaluateSegmentPoint(n0, n1, s, tau1);
+            const pPt = gridToPaletteXY(gPt.col, gPt.row);
+            ctx.lineTo(pPt.x, pPt.y);
+          }
+          ctx.closePath();
+
+          ctx.fillStyle = getColorRgba(shape.color, alpha);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawShapeHandlesOnPalette(ctx, shape, isPrimary) {
+      const nodes = shape.nodes;
+      if (!nodes || nodes.length < 2) return;
+
+      ctx.save();
+      const N_SEG_STEPS = 30;
+
+      // Dashed bounding outline
+      ctx.beginPath();
+      const firstL = gridToPaletteXY(nodes[0].left, nodes[0].y);
+      const firstR = gridToPaletteXY(nodes[0].right, nodes[0].y);
+      ctx.moveTo(firstL.x, firstL.y);
+      ctx.lineTo(firstR.x, firstR.y);
+
+      for (let k = 0; k < nodes.length - 1; k++) {
+        for (let i = 1; i <= N_SEG_STEPS; i++) {
+          const gPt = evaluateSegmentPoint(nodes[k], nodes[k + 1], 1, i / N_SEG_STEPS);
+          const pt = gridToPaletteXY(gPt.col, gPt.row);
+          ctx.lineTo(pt.x, pt.y);
+        }
+      }
+      for (let k = nodes.length - 2; k >= 0; k--) {
+        for (let i = N_SEG_STEPS; i >= 0; i--) {
+          const gPt = evaluateSegmentPoint(nodes[k], nodes[k + 1], 0, i / N_SEG_STEPS);
+          const pt = gridToPaletteXY(gPt.col, gPt.row);
+          ctx.lineTo(pt.x, pt.y);
+        }
+      }
+      ctx.closePath();
+      ctx.strokeStyle = isPrimary ? 'rgba(255, 255, 255, 0.85)' : 'rgba(56, 189, 248, 0.65)';
+      ctx.lineWidth = isPrimary ? 1.5 : 1.2;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (!isPrimary) {
+        ctx.restore();
+        return;
+      }
+
+      // Highlight Left & Right edge curves per segment
+      for (let k = 0; k < nodes.length - 1; k++) {
+        const n0 = nodes[k];
+        const n1 = nodes[k + 1];
+        const isActiveSeg = state.activeNodeIndex === k;
+        ctx.strokeStyle = isActiveSeg ? '#f0abfc' : 'rgba(232, 121, 249, 0.65)';
+        ctx.lineWidth = isActiveSeg ? 2.8 : 2.0;
+
+        // Left edge
+        ctx.beginPath();
+        for (let i = 0; i <= N_SEG_STEPS; i++) {
+          const gPt = evaluateSegmentPoint(n0, n1, 0, i / N_SEG_STEPS);
+          const pt = gridToPaletteXY(gPt.col, gPt.row);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+
+        // Right edge
+        ctx.beginPath();
+        for (let i = 0; i <= N_SEG_STEPS; i++) {
+          const gPt = evaluateSegmentPoint(n0, n1, 1, i / N_SEG_STEPS);
+          const pt = gridToPaletteXY(gPt.col, gPt.row);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+
+        // Center dashed spine (no '+' button inside palette)
+        const c0 = gridToPaletteXY((n0.left + n0.right) * 0.5, n0.y);
+        const c1 = gridToPaletteXY((n1.left + n1.right) * 0.5, n1.y);
+        ctx.beginPath();
+        ctx.moveTo(c0.x, c0.y);
+        ctx.lineTo(c1.x, c1.y);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+        ctx.lineWidth = 1.3;
+        ctx.setLineDash([2, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Draw each node's horizontal bar, left/right square handles, and center circle handle
+      for (let k = 0; k < nodes.length; k++) {
+        const node = nodes[k];
+        const isStart = k === 0;
+        const isEnd = k === nodes.length - 1;
+        const isActiveNode = state.activeNodeIndex === k;
+
+        const ptL = gridToPaletteXY(node.left, node.y);
+        const ptR = gridToPaletteXY(node.right, node.y);
+        const ptC = gridToPaletteXY((node.left + node.right) * 0.5, node.y);
+
+        const barColor = isStart ? '#38bdf8' : (isEnd ? '#fbbf24' : '#e879f9');
+
+        ctx.beginPath();
+        ctx.moveTo(ptL.x, ptL.y);
+        ctx.lineTo(ptR.x, ptR.y);
+        ctx.strokeStyle = barColor;
+        ctx.lineWidth = isActiveNode ? 3.0 : 2.2;
+        ctx.stroke();
+
+        drawSquareHandle(ctx, ptL.x, ptL.y, barColor, isActiveNode);
+        drawSquareHandle(ctx, ptR.x, ptR.y, barColor, isActiveNode);
+
+        const cTag = node.curveMode === 'left' ? '[（（]' : (node.curveMode === 'right' ? '[））]' : '[｜｜]');
+        let label = '';
+        let fill = '#0284c7';
+        let stroke = '#e0f2fe';
+        let labelPos = 'top';
+
+        if (isStart) {
+          label = `始点${cTag}`;
+          fill = isActiveNode ? '#0ea5e9' : '#0284c7';
+          stroke = isActiveNode ? '#ffffff' : '#e0f2fe';
+          labelPos = 'bottom';
+        } else if (isEnd) {
+          label = '終点';
+          fill = isActiveNode ? '#f59e0b' : '#d97706';
+          stroke = isActiveNode ? '#ffffff' : '#fef3c7';
+          labelPos = 'top';
+        } else {
+          label = `中継${k}${cTag}`;
+          fill = isActiveNode ? '#d946ef' : '#a21caf';
+          stroke = isActiveNode ? '#ffffff' : '#fae8ff';
+          labelPos = 'top';
+        }
+
+        drawCircleHandle(ctx, ptC.x, ptC.y, isActiveNode ? 8.5 : 7.0, fill, stroke, label, labelPos);
+      }
+
+      ctx.restore();
+    }
+
+    function drawAddRelayBadge(ctx, x, y) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, 6.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(232, 121, 249, 0.85)';
+      ctx.stroke();
+
+      ctx.strokeStyle = '#f0abfc';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(x - 3, y);
+      ctx.lineTo(x + 3, y);
+      ctx.moveTo(x, y - 3);
+      ctx.lineTo(x, y + 3);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCircleHandle(ctx, x, y, radius, fill, stroke, label, pos = 'top') {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = stroke;
+      ctx.stroke();
+
+      if (label) {
+        ctx.font = 'bold 10px "Noto Sans JP", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.95)';
+        ctx.shadowBlur = 4;
+        const labelY = pos === 'bottom' ? (y + radius + 13) : (y - radius - 6);
+        ctx.fillText(label, x, labelY);
+      }
+      ctx.restore();
+    }
+
+    function drawSquareHandle(ctx, x, y, color, highlight = false) {
+      const sz = highlight ? 9.5 : 8;
+      ctx.save();
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = highlight ? 2.4 : 2;
+      ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+      ctx.strokeRect(x - sz / 2, y - sz / 2, sz, sz);
+      ctx.restore();
+    }
+
+    function renderPreview() {
+      const ctx = previewCtx;
+      const W = previewCanvas.width;
+      const H = previewCanvas.height;
+      const rows = state.gridRows;
+
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, W, H);
+
+      // 1. Render grid cells in perspective
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < GRID_COLS; c++) {
+          const cell = state.grid[r] && state.grid[r][c];
+          if (cell && cell.alpha > 0.005) {
+            const p00 = gridToPerspectiveXY(c, r);
+            const p10 = gridToPerspectiveXY(c + 1, r);
+            const p11 = gridToPerspectiveXY(c + 1, r + 1);
+            const p01 = gridToPerspectiveXY(c, r + 1);
+
+            ctx.beginPath();
+            ctx.moveTo(p00.x, p00.y);
+            ctx.lineTo(p10.x, p10.y);
+            ctx.lineTo(p11.x, p11.y);
+            ctx.lineTo(p01.x, p01.y);
+            ctx.closePath();
+            ctx.fillStyle = getColorRgba(cell.color, cell.alpha);
+            ctx.fill();
+          }
+        }
+      }
+
+      // 2. Render smooth vector shapes in perspective
+      for (const shape of state.shapes) {
+        drawSmoothShapeOnPerspective(ctx, shape);
+      }
+
+      // 3. Optional fine sub-grid overlay
+      if (state.showSubGrid) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.lineWidth = 0.9;
+
+        for (let c = 0; c <= GRID_COLS; c++) {
+          const botPt = gridToPerspectiveXY(c, 0);
+          const topPt = gridToPerspectiveXY(c, rows);
+          ctx.beginPath();
+          ctx.moveTo(topPt.x, topPt.y);
+          ctx.lineTo(botPt.x, botPt.y);
+          ctx.stroke();
+        }
+
+        const stepR = rows >= 1920 ? 120 : (rows >= 192 ? 12 : (rows >= 64 ? 4 : 1));
+        for (let r = 0; r <= rows; r += stepR) {
+          const leftPt = gridToPerspectiveXY(0, r);
+          const rightPt = gridToPerspectiveXY(GRID_COLS, r);
+          ctx.beginPath();
+          ctx.moveTo(leftPt.x, leftPt.y);
+          ctx.lineTo(rightPt.x, rightPt.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 4. Main white frame & lane lines (interior horizontal lines hidden)
+      if (state.showMainLines) {
+        ctx.save();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 2.8;
+
+        // Only draw top border (t = 0) and bottom border (t = 1), hiding interior horizontal lines
+        const boundaryT = [0, 1];
+        for (const t of boundaryT) {
+          const y = (PERSP_GEOM.topY + t * (PERSP_GEOM.botY - PERSP_GEOM.topY)) * H;
+          const leftX = (PERSP_GEOM.topLeftX + t * (PERSP_GEOM.botLeftX - PERSP_GEOM.topLeftX)) * W;
+          const rightX = (PERSP_GEOM.topRightX + t * (PERSP_GEOM.botRightX - PERSP_GEOM.topRightX)) * W;
+
+          ctx.beginPath();
+          ctx.moveTo(leftX, y);
+          ctx.lineTo(rightX, y);
+          ctx.stroke();
+        }
+
+        const lanes = PERSP_GEOM.numMainLanes;
+        for (let i = 0; i <= lanes; i++) {
+          const u = i / lanes;
+          const pTop = uvToPerspectiveXY(u, 0);
+          const pBot = uvToPerspectiveXY(u, 1);
+          ctx.lineWidth = (i === 0 || i === lanes) ? 2.8 : 2.2;
+          ctx.beginPath();
+          ctx.moveTo(pTop.x, pTop.y);
+          ctx.lineTo(pBot.x, pBot.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawSmoothShapeOnPerspective(ctx, shape) {
+      const nodes = shape.nodes;
+      if (!nodes || nodes.length < 2) return;
+      const N_S = 28;
+
+      ctx.save();
+      const topL = uvToPerspectiveXY(0, 0);
+      const topR = uvToPerspectiveXY(1, 0);
+      const botR = uvToPerspectiveXY(1, 1);
+      const botL = uvToPerspectiveXY(0, 1);
+      ctx.beginPath();
+      ctx.moveTo(topL.x, topL.y);
+      ctx.lineTo(topR.x, topR.y);
+      ctx.lineTo(botR.x, botR.y);
+      ctx.lineTo(botL.x, botL.y);
+      ctx.closePath();
+      ctx.clip();
+
+      for (let k = 0; k < nodes.length - 1; k++) {
+        const n0 = nodes[k];
+        const n1 = nodes[k + 1];
+        const steps = Math.max(48, Math.min(110, Math.round(110 / (nodes.length - 1))));
+
+        for (let i = 0; i < steps; i++) {
+          const tau0 = i / steps;
+          const tau1 = (i + 1) / steps;
+          const rowMid = n0.y + ((tau0 + tau1) * 0.5) * (n1.y - n0.y);
+          const alpha = getShapeAlphaAtRow(shape, rowMid);
+          if (alpha <= 0.003) continue;
+
+          ctx.beginPath();
+          for (let j = 0; j <= N_S; j++) {
+            const s = j / N_S;
+            const gPt = evaluateSegmentPoint(n0, n1, s, tau0);
+            const pPt = gridToPerspectiveXY(gPt.col, gPt.row);
+            if (j === 0) ctx.moveTo(pPt.x, pPt.y);
+            else ctx.lineTo(pPt.x, pPt.y);
+          }
+          for (let j = N_S; j >= 0; j--) {
+            const s = j / N_S;
+            const gPt = evaluateSegmentPoint(n0, n1, s, tau1);
+            const pPt = gridToPerspectiveXY(gPt.col, gPt.row);
+            ctx.lineTo(pPt.x, pPt.y);
+          }
+          ctx.closePath();
+
+          ctx.fillStyle = getColorRgba(shape.color, alpha);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+
+    function renderAll() {
+      renderPalette();
+      renderPreview();
+      renderLayerList();
+    }
+
+    function getActiveShape() {
+      return state.shapes.find(s => s.id === state.activeShapeId) || null;
+    }
+
+    function getSelectedShapes() {
+      const set = new Set(state.selectedShapeIds);
+      return state.shapes.filter(s => set.has(s.id));
+    }
+
+    function selectSingleShape(shapeId, nodeIdx = 0) {
+      if (!shapeId) {
+        state.selectedShapeIds = [];
+        state.activeShapeId = null;
+        state.activeNodeIndex = 0;
+        state.relaySubMode = null;
+      } else {
+        state.selectedShapeIds = [shapeId];
+        state.activeShapeId = shapeId;
+        const sh = getActiveShape();
+        state.activeNodeIndex = sh ? Math.max(0, Math.min(sh.nodes.length - 1, nodeIdx)) : 0;
+        if (sh && sh.nodes[state.activeNodeIndex]) {
+          setLastUsedWidth(sh.nodes[state.activeNodeIndex].right - sh.nodes[state.activeNodeIndex].left);
+        }
+      }
+      syncUIWithSelectedShape();
+    }
+
+    function toggleShapeSelection(shapeId) {
+      const idx = state.selectedShapeIds.indexOf(shapeId);
+      if (idx >= 0) {
+        state.selectedShapeIds.splice(idx, 1);
+        if (state.activeShapeId === shapeId) {
+          state.activeShapeId = state.selectedShapeIds[state.selectedShapeIds.length - 1] || null;
+          state.activeNodeIndex = 0;
+        }
+      } else {
+        state.selectedShapeIds.push(shapeId);
+        state.activeShapeId = shapeId;
+        state.activeNodeIndex = 0;
+      }
+      if (state.selectedShapeIds.length === 0) {
+        state.relaySubMode = null;
+      }
+      syncUIWithSelectedShape();
+      renderAll();
+    }
+
+    function setGridRowsDivision(newRows) {
+      if (!ALLOWED_ROW_DIVISIONS.includes(newRows) || newRows === state.gridRows) return;
+      saveHistory();
+
+      const oldRows = state.gridRows;
+      const scale = newRows / oldRows;
+      const fineStep = getMinFineStepY(newRows);
+
+      const newGrid = Array.from({ length: newRows }, () => Array(GRID_COLS).fill(null));
+      for (let r = 0; r < newRows; r++) {
+        const srcR = Math.min(oldRows - 1, Math.floor(r / scale));
+        for (let c = 0; c < GRID_COLS; c++) {
+          if (state.grid[srcR] && state.grid[srcR][c]) {
+            newGrid[r][c] = { ...state.grid[srcR][c] };
+          }
+        }
+      }
+
+      for (const sh of state.shapes) {
+        const nLen = sh.nodes.length;
+        for (let i = 0; i < nLen; i++) {
+          const minY = i === 0 ? 0 : sh.nodes[i - 1].y + fineStep;
+          const maxY = newRows - (nLen - 1 - i) * fineStep;
+          sh.nodes[i].y = snapFine1920(sh.nodes[i].y * scale, minY, Math.max(minY, maxY), newRows);
+        }
+      }
+
+      state.gridRows = newRows;
+      state.grid = newGrid;
+
+      updateGridDivisionUI();
+      syncUIWithSelectedShape();
+      renderAll();
+      triggerAutoSave();
+    }
+
+    function stepGridDivision(delta) {
+      const idx = ALLOWED_ROW_DIVISIONS.indexOf(state.gridRows);
+      const nextIdx = Math.max(0, Math.min(ALLOWED_ROW_DIVISIONS.length - 1, idx + delta));
+      if (nextIdx !== idx) {
+        setGridRowsDivision(ALLOWED_ROW_DIVISIONS[nextIdx]);
+      }
+    }
+
+    function updateGridDivisionUI() {
+      const rows = state.gridRows;
+      const idx = ALLOWED_ROW_DIVISIONS.indexOf(rows);
+      document.getElementById('headerGridBadge').textContent = `12×${rows} パレット`;
+      document.getElementById('lblPaletteTitleDims').textContent = `12×${rows}`;
+      document.getElementById('lblCurrentGridRows').textContent = `${rows}`;
+      document.getElementById('btnGridMinus').disabled = idx <= 0;
+      document.getElementById('btnGridPlus').disabled = idx >= ALLOWED_ROW_DIVISIONS.length - 1;
+    }
+
+    function syncUIWithSelectedShape() {
+      const activeShape = getActiveShape();
+      const selectedShapes = getSelectedShapes();
+      const hasSel = selectedShapes.length > 0;
+
+      document.getElementById('btnCopyShape').disabled = !hasSel;
+      document.getElementById('btnPasteShape').disabled = state.clipboardShapes.length === 0;
+      document.getElementById('btnDeleteShape').disabled = !hasSel;
+      document.getElementById('btnSaveTemplate').disabled = !activeShape;
+      document.getElementById('btnLayerUp').disabled = !hasSel;
+      document.getElementById('btnLayerDown').disabled = !hasSel;
+
+      let cMode = state.currentCurveMode;
+      let nodeInfoText = '未選択';
+      let canAddRelay = false;
+      let canDelRelay = false;
+
+      if (activeShape) {
+        const nodes = activeShape.nodes;
+        const nIdx = Math.max(0, Math.min(nodes.length - 1, state.activeNodeIndex));
+        state.activeNodeIndex = nIdx;
+        const segIdx = Math.min(nIdx, nodes.length - 2);
+        cMode = nodes[segIdx].curveMode || 'straight';
+
+        const yDisp = formatYValue(nodes[nIdx].y);
+        if (nIdx === 0) {
+          nodeInfoText = `始点 (Y:${yDisp}, 幅:${nodes[0].right - nodes[0].left})`;
+        } else if (nIdx === nodes.length - 1) {
+          nodeInfoText = `終点 (Y:${yDisp}, 幅:${nodes[nIdx].right - nodes[nIdx].left})`;
+        } else {
+          nodeInfoText = `中継${nIdx} (Y:${yDisp}, 幅:${nodes[nIdx].right - nodes[nIdx].left})`;
+        }
+
+        const totalSpan = nodes[nodes.length - 1].y - nodes[0].y;
+        canAddRelay = totalSpan > getMinFineStepY() * 2;
+        canDelRelay = nodes.length > 2;
+      } else {
+        state.relaySubMode = null;
+      }
+
+      if (!canAddRelay && state.relaySubMode === 'add') state.relaySubMode = null;
+      if (!canDelRelay && state.relaySubMode === 'delete') state.relaySubMode = null;
+
+      document.getElementById('lblSelectedNodeInfo').textContent =
+        selectedShapes.length > 1 ? `${selectedShapes.length}個のレイヤー選択中` : nodeInfoText;
+
+      const btnAdd = document.getElementById('btnAddRelayPoint');
+      const btnDel = document.getElementById('btnDeleteRelayPoint');
+      btnAdd.disabled = !canAddRelay;
+      btnDel.disabled = !canDelRelay;
+      btnAdd.classList.toggle('active-add', state.relaySubMode === 'add');
+      btnDel.classList.toggle('active-del', state.relaySubMode === 'delete');
+      btnAdd.innerHTML = state.relaySubMode === 'add' ? '<span>● 追加モード中</span>' : '<span>＋ 中継点追加</span>';
+      btnDel.innerHTML = state.relaySubMode === 'delete' ? '<span>● 削除モード中</span>' : '<span>－ 中継点削除</span>';
+
+      document.getElementById('lblCurveModeName').textContent = CURVE_MODES[cMode] || CURVE_MODES.straight;
+      document.querySelectorAll('.curve-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.curve === cMode);
+      });
+    }
+
+    function toggleRelaySubMode(targetMode) {
+      const shape = getActiveShape();
+      if (!shape) {
+        showToast('先に図形を選択してください');
+        return;
+      }
+      if (state.relaySubMode === targetMode) {
+        state.relaySubMode = null;
+        showToast('通常編集モードに戻りました');
+      } else {
+        state.relaySubMode = targetMode;
+        if (targetMode === 'add') {
+          showToast('中継点追加モード: 選択中の図形をクリックして中継点を配置');
+        } else if (targetMode === 'delete') {
+          showToast('中継点削除モード: 削除したい中継点(●)をクリック');
+        }
+      }
+      syncUIWithSelectedShape();
+      renderAll();
+    }
+
+    // Place a relay point at a specific row (Y) inside the active shape
+    function insertRelayPointAtRow(shape, rawRowFloat) {
+      if (!shape || !shape.nodes || shape.nodes.length < 2) return false;
+      const nodes = shape.nodes;
+      const rows = state.gridRows;
+      const step1920 = getMinFineStepY(rows);
+
+      // Find which segment [segIdx, segIdx+1] contains rawRowFloat
+      let segIdx = -1;
+      for (let k = 0; k < nodes.length - 1; k++) {
+        if (rawRowFloat >= nodes[k].y && rawRowFloat <= nodes[k + 1].y) {
+          segIdx = k;
+          break;
+        }
+      }
+      if (segIdx < 0) return false;
+
+      const n0 = nodes[segIdx];
+      const n1 = nodes[segIdx + 1];
+      if (n1.y - n0.y < step1920 * 2) {
+        showToast('この区間には中継点を追加する隙間がありません');
+        return false;
+      }
+
+      const newY = computeNodeSnappedY(rawRowFloat, n0.y + step1920, n1.y - step1920, n0.y, n1.y);
+      const localTau = (newY - n0.y) / Math.max(step1920, n1.y - n0.y);
+      const { leftCol, rightCol } = evaluateSegmentEdgesAtTau(n0, n1, localTau);
+      const newLeft = snapInt(leftCol, 0, GRID_COLS - 1);
+      const newRight = Math.max(newLeft + 1, snapInt(rightCol, 1, GRID_COLS));
+
+      saveHistory();
+      const relayNode = {
+        left: newLeft,
+        right: newRight,
+        y: newY,
+        curveMode: n0.curveMode || 'straight'
+      };
+
+      nodes.splice(segIdx + 1, 0, relayNode);
+      state.activeNodeIndex = segIdx + 1;
+      syncUIWithSelectedShape();
+      renderAll();
+      triggerAutoSave();
+      showToast(`中継点${segIdx + 1}を配置しました`);
+      return true;
+    }
+
+    function deleteRelayPointByIndex(shape, nIdx) {
+      if (!shape || nIdx <= 0 || nIdx >= shape.nodes.length - 1) return false;
+      saveHistory();
+      shape.nodes.splice(nIdx, 1);
+      state.activeNodeIndex = Math.max(0, nIdx - 1);
+      if (shape.nodes.length <= 2 && state.relaySubMode === 'delete') {
+        state.relaySubMode = null;
+      }
+      syncUIWithSelectedShape();
+      renderAll();
+      triggerAutoSave();
+      showToast(`中継点${nIdx}を削除しました`);
+      return true;
+    }
+
+    function getShapeDisplayName(shape, indexInBottomUp) {
+      const cObj = COLORS[shape.color] || COLORS.green;
+      const relayCount = Math.max(0, shape.nodes.length - 2);
+      const relayTag = relayCount > 0 ? `・中継${relayCount}` : '';
+      const firstSegMode = shape.nodes[0]?.curveMode || 'straight';
+      const curveSymbol = firstSegMode === 'left' ? '（（' : (firstSegMode === 'right' ? '））' : '｜｜');
+      return `L${indexInBottomUp + 1}: ${cObj.name} ${curveSymbol}${relayTag}`;
+    }
+
+    function renderLayerList() {
+      const container = document.getElementById('layerListContainer');
+      document.getElementById('lblLayerCount').textContent = `(${state.shapes.length})`;
+      container.innerHTML = '';
+
+      if (state.shapes.length === 0) {
+        container.innerHTML = `<div class="text-[11px] text-slate-500 py-2 text-center">パレットをドラッグして図形を作成</div>`;
+        return;
+      }
+
+      const selectedSet = new Set(state.selectedShapeIds);
+
+      // Display from top-most layer (end of state.shapes) to bottom-most layer (start of state.shapes)
+      for (let i = state.shapes.length - 1; i >= 0; i--) {
+        const sh = state.shapes[i];
+        const cObj = COLORS[sh.color] || COLORS.green;
+        const isSel = selectedSet.has(sh.id);
+        const isPrimary = sh.id === state.activeShapeId;
+
+        const row = document.createElement('div');
+        row.className = `layer-item flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg border text-xs transition cursor-pointer ${
+          isSel ? 'selected' : 'bg-slate-900/90 hover:bg-slate-800/80 border-slate-800'
+        }`;
+
+        const labelText = getShapeDisplayName(sh, i);
+        row.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <input type="checkbox" data-act="check" ${isSel ? 'checked' : ''} class="w-3.5 h-3.5 rounded accent-sky-400 cursor-pointer shrink-0" title="複数選択チェック" />
+            <span class="w-3 h-3 rounded-sm shrink-0 inline-block border border-white/20" style="background:${cObj.hex}"></span>
+            <span class="truncate font-medium ${isPrimary ? 'text-white font-bold' : 'text-slate-200'}">${labelText}</span>
+          </div>
+          <div class="flex items-center gap-0.5 shrink-0">
+            <button data-act="up" class="px-1.5 py-0.5 rounded hover:bg-slate-700 text-[10px] text-slate-300" title="1つ上(前面)へ">▲</button>
+            <button data-act="down" class="px-1.5 py-0.5 rounded hover:bg-slate-700 text-[10px] text-slate-300" title="1つ下(背面)へ">▼</button>
+          </div>
+        `;
+
+        row.addEventListener('click', (e) => {
+          if (e.target.dataset.act === 'check') {
+            toggleShapeSelection(sh.id);
+            return;
+          }
+          if (e.target.dataset.act === 'up') {
+            e.stopPropagation();
+            moveSingleLayer(sh.id, 1);
+            return;
+          }
+          if (e.target.dataset.act === 'down') {
+            e.stopPropagation();
+            moveSingleLayer(sh.id, -1);
+            return;
+          }
+          if (e.shiftKey || e.ctrlKey || e.metaKey) {
+            toggleShapeSelection(sh.id);
+          } else {
+            selectSingleShape(sh.id, 0);
+            renderAll();
+          }
+        });
+
+        container.appendChild(row);
+      }
+    }
+
+    function moveSingleLayer(shapeId, dir) {
+      const idx = state.shapes.findIndex(s => s.id === shapeId);
+      if (idx < 0) return;
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= state.shapes.length) return;
+      saveHistory();
+      const temp = state.shapes[idx];
+      state.shapes[idx] = state.shapes[targetIdx];
+      state.shapes[targetIdx] = temp;
+      renderAll();
+      triggerAutoSave();
+    }
+
+    function moveSelectedLayers(dir) {
+      if (state.selectedShapeIds.length === 0) return;
+      const selectedSet = new Set(state.selectedShapeIds);
+      saveHistory();
+
+      if (dir > 0) {
+        // Move up (toward end of array)
+        for (let i = state.shapes.length - 2; i >= 0; i--) {
+          if (selectedSet.has(state.shapes[i].id) && !selectedSet.has(state.shapes[i + 1].id)) {
+            const tmp = state.shapes[i];
+            state.shapes[i] = state.shapes[i + 1];
+            state.shapes[i + 1] = tmp;
+          }
+        }
+      } else {
+        // Move down (toward start of array)
+        for (let i = 1; i < state.shapes.length; i++) {
+          if (selectedSet.has(state.shapes[i].id) && !selectedSet.has(state.shapes[i - 1].id)) {
+            const tmp = state.shapes[i];
+            state.shapes[i] = state.shapes[i - 1];
+            state.shapes[i - 1] = tmp;
+          }
+        }
+      }
+      renderAll();
+      triggerAutoSave();
+    }
+
+    function copySelectedShape() {
+      const selected = getSelectedShapes();
+      if (selected.length === 0) return;
+      state.clipboardShapes = selected.map(sh => ({
+        ...JSON.parse(JSON.stringify(sh)),
+        refRows: state.gridRows
+      }));
+      syncUIWithSelectedShape();
+      showToast(`${selected.length}個の図形をコピーしました`);
+    }
+
+    function pasteClipboardShape() {
+      if (state.clipboardShapes.length === 0) return;
+      saveHistory();
+
+      const newIds = [];
+      const fineStep = getMinFineStepY(state.gridRows);
+      for (const src of state.clipboardShapes) {
+        const scale = state.gridRows / (src.refRows || state.gridRows);
+        const canShiftRight = src.nodes.every(n => n.right < GRID_COLS);
+        const shiftX = canShiftRight ? 1 : 0;
+
+        const newNodes = src.nodes.map((n, idx) => {
+          const w = n.right - n.left;
+          const left = snapInt(n.left + shiftX, 0, GRID_COLS - w);
+          const y = snapFine1920(n.y * scale, idx * fineStep, state.gridRows - (src.nodes.length - 1 - idx) * fineStep);
+          return {
+            left,
+            right: left + w,
+            y,
+            curveMode: n.curveMode || 'straight'
+          };
+        });
+
+        const newShape = normalizeShape({
+          id: 'shape_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+          color: src.color,
+          nodes: newNodes
+        });
+
+        state.shapes.push(newShape);
+        newIds.push(newShape.id);
+      }
+
+      state.selectedShapeIds = newIds;
+      state.activeShapeId = newIds[newIds.length - 1] || null;
+      state.activeNodeIndex = 0;
+      setMode('draw');
+      syncUIWithSelectedShape();
+      renderAll();
+      triggerAutoSave();
+      showToast('図形をペーストしました');
+    }
+
+    function saveSelectedShapeAsTemplate() {
+      const shape = getActiveShape();
+      if (!shape) return;
+      const inputEl = document.getElementById('inpTemplateName');
+      const rawName = inputEl.value.trim();
+      const colorName = (COLORS[shape.color] || COLORS.green).name;
+      const firstMode = shape.nodes[0]?.curveMode || 'straight';
+      const curveLabel = firstMode === 'left' ? '（（' : (firstMode === 'right' ? '））' : '直線');
+      const name = rawName || `${colorName}・${curveLabel}`;
+
+      const tpl = {
+        id: 'tpl_' + Date.now(),
+        name,
+        color: shape.color,
+        nodesRatio: shape.nodes.map(n => ({
+          left: n.left,
+          right: n.right,
+          yRatio: n.y / state.gridRows,
+          curveMode: n.curveMode || 'straight'
+        }))
+      };
+
+      state.templates.unshift(tpl);
+      inputEl.value = '';
+      renderTemplateList();
+      saveTemplatesToStorage();
+      triggerAutoSave();
+      showToast(`テンプレート「${name}」を保存しました`);
+    }
+
+    function applyTemplate(tpl) {
+      saveHistory();
+      const rows = state.gridRows;
+      const fineStep = getMinFineStepY(rows);
+      let nodes = [];
+
+      if (Array.isArray(tpl.nodesRatio) && tpl.nodesRatio.length >= 2) {
+        const len = tpl.nodesRatio.length;
+        nodes = tpl.nodesRatio.map((nr, i) => ({
+          left: nr.left,
+          right: nr.right,
+          y: snapFine1920((nr.yRatio ?? (i / (len - 1))) * rows, i * fineStep, rows - (len - 1 - i) * fineStep, rows),
+          curveMode: nr.curveMode || 'straight'
+        }));
+      } else {
+        const startY = snapFine1920((tpl.startYRatio || 0) * rows, 0, rows - fineStep, rows);
+        const endY = snapFine1920((tpl.endYRatio || 0.85) * rows, startY + fineStep, rows, rows);
+        nodes = [
+          { left: tpl.startLeft ?? 2, right: tpl.startRight ?? 6, y: startY, curveMode: tpl.curveMode || 'straight' },
+          { left: tpl.endLeft ?? 4, right: tpl.endRight ?? 7, y: endY, curveMode: 'straight' }
+        ];
+      }
+
+      const newShape = normalizeShape({
+        id: 'shape_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        color: tpl.color || state.currentColor,
+        nodes
+      });
+
+      state.shapes.push(newShape);
+      selectSingleShape(newShape.id, 0);
+      state.currentColor = newShape.color;
+      state.currentCurveMode = newShape.nodes[0].curveMode;
+      updateColorButtonsUI();
+      setMode('draw');
+      syncUIWithSelectedShape();
+      renderAll();
+      triggerAutoSave();
+      showToast(`テンプレート「${tpl.name}」を配置しました`);
+    }
+
+    function deleteTemplate(tplId) {
+      state.templates = state.templates.filter(t => t.id !== tplId);
+      renderTemplateList();
+      saveTemplatesToStorage();
+      triggerAutoSave();
+    }
+
+    function renderTemplateList() {
+      const container = document.getElementById('templateListContainer');
+      document.getElementById('lblTemplateCount').textContent = `${state.templates.length}件`;
+      container.innerHTML = '';
+
+      if (state.templates.length === 0) {
+        container.innerHTML = `<div class="text-[11px] text-slate-500 py-2 text-center">図形を選択して「＋ 保存」で登録</div>`;
+        return;
+      }
+
+      state.templates.forEach(tpl => {
+        const cObj = COLORS[tpl.color] || COLORS.green;
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800/90 border border-slate-800 text-xs transition';
+        row.innerHTML = `
+          <button class="flex-1 flex items-center gap-2 text-left truncate text-slate-200 hover:text-white" data-act="insert">
+            <span class="w-3 h-3 rounded-sm shrink-0 inline-block" style="background:${cObj.hex}"></span>
+            <span class="truncate font-medium">${tpl.name}</span>
+          </button>
+          <button class="text-[11px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 shrink-0" data-act="insert">追加</button>
+          <button class="text-[11px] px-1.5 py-0.5 rounded text-slate-400 hover:text-rose-300 shrink-0" data-act="del" title="削除">✕</button>
+        `;
+        row.querySelectorAll('[data-act="insert"]').forEach(btn => {
+          btn.addEventListener('click', () => applyTemplate(tpl));
+        });
+        row.querySelector('[data-act="del"]').addEventListener('click', () => deleteTemplate(tpl.id));
+        container.appendChild(row);
+      });
+    }
+
+    function saveTemplatesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(state.templates));
+      } catch (err) {
+        console.warn('Template storage error:', err);
+      }
+    }
+
+    function saveFullPaletteWithName() {
+      const inputEl = document.getElementById('inpPaletteSaveName');
+      const rawName = inputEl.value.trim();
+      const defaultName = `パレット ${state.savedPalettes.length + 1} (12×${state.gridRows})`;
+      const name = rawName || defaultName;
+
+      const entry = {
+        id: 'pal_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        name,
+        savedAt: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+        gridRows: state.gridRows,
+        slideOpacity: state.slideOpacity,
+        guideOpacity: state.guideOpacity,
+        grid: JSON.parse(JSON.stringify(state.grid)),
+        shapes: JSON.parse(JSON.stringify(state.shapes))
+      };
+
+      state.savedPalettes.unshift(entry);
+      inputEl.value = '';
+      renderSavedPaletteList();
+      savePalettesToStorage();
+      triggerAutoSave();
+      showToast(`パレット全体「${name}」を保存しました`);
+    }
+
+    function loadSavedFullPalette(entry) {
+      if (!entry) return;
+      saveHistory();
+      applyLoadedData({
+        gridRows: entry.gridRows,
+        slideOpacity: entry.slideOpacity,
+        guideOpacity: entry.guideOpacity,
+        grid: JSON.parse(JSON.stringify(entry.grid || [])),
+        shapes: JSON.parse(JSON.stringify(entry.shapes || []))
+      });
+      triggerAutoSave();
+      showToast(`パレット「${entry.name}」を読み込みました`);
+    }
+
+    function deleteSavedFullPalette(id) {
+      state.savedPalettes = state.savedPalettes.filter(p => p.id !== id);
+      renderSavedPaletteList();
+      savePalettesToStorage();
+      triggerAutoSave();
+    }
+
+    function renderSavedPaletteList() {
+      const container = document.getElementById('savedPaletteListContainer');
+      const countEl = document.getElementById('lblSavedPaletteCount');
+      if (!container || !countEl) return;
+      countEl.textContent = `${state.savedPalettes.length}件`;
+      container.innerHTML = '';
+
+      if (state.savedPalettes.length === 0) {
+        container.innerHTML = `<div class="text-[11px] text-slate-500 py-2 text-center">名前を付けて「＋ 全体保存」で登録</div>`;
+        return;
+      }
+
+      state.savedPalettes.forEach(item => {
+        const shapeCount = Array.isArray(item.shapes) ? item.shapes.length : 0;
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800/90 border border-slate-800 text-xs transition';
+        row.innerHTML = `
+          <button class="flex-1 flex items-center gap-1.5 text-left truncate text-slate-200 hover:text-white" data-act="load">
+            <span class="truncate font-medium">${item.name}</span>
+            <span class="text-[10px] font-mono text-slate-400 shrink-0">(12×${item.gridRows}・${shapeCount}個)</span>
+          </button>
+          <button class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 shrink-0" data-act="load">読込</button>
+          <button class="text-[11px] px-1.5 py-0.5 rounded text-slate-400 hover:text-rose-300 shrink-0" data-act="del" title="削除">✕</button>
+        `;
+        row.querySelectorAll('[data-act="load"]').forEach(btn => {
+          btn.addEventListener('click', () => loadSavedFullPalette(item));
+        });
+        row.querySelector('[data-act="del"]').addEventListener('click', () => deleteSavedFullPalette(item.id));
+        container.appendChild(row);
+      });
+    }
+
+    function savePalettesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SAVED_PALETTES, JSON.stringify(state.savedPalettes));
+      } catch (err) {
+        console.warn('Saved palettes storage error:', err);
+      }
+    }
+
+    function buildExportPayload() {
+      return {
+        version: 4,
+        savedAt: new Date().toISOString(),
+        gridRows: state.gridRows,
+        lastUsedWidth: state.lastUsedWidth,
+        slideOpacity: state.slideOpacity,
+        guideOpacity: state.guideOpacity,
+        grid: state.grid,
+        shapes: state.shapes,
+        templates: state.templates,
+        savedPalettes: state.savedPalettes
+      };
+    }
+
+    let autoSaveTimer = null;
+    function triggerAutoSave() {
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        performAutoSave();
+      }, 250);
+    }
+
+    async function performAutoSave() {
+      const payload = buildExportPayload();
+      const jsonStr = JSON.stringify(payload, null, 2);
+
+      try {
+        localStorage.setItem(STORAGE_KEY_PALETTE, jsonStr);
+      } catch (e) {
+        console.warn('LocalStorage save failed:', e);
+      }
+
+      if (state.directoryHandle) {
+        try {
+          const paletteFileHandle = await state.directoryHandle.getFileHandle('palette_autosave.json', { create: true });
+          const writable = await paletteFileHandle.createWritable();
+          await writable.write(jsonStr);
+          await writable.close();
+
+          const tplFileHandle = await state.directoryHandle.getFileHandle('shape_templates.json', { create: true });
+          const tplWritable = await tplFileHandle.createWritable();
+          await tplWritable.write(JSON.stringify(state.templates, null, 2));
+          await tplWritable.close();
+
+          const savedPalFileHandle = await state.directoryHandle.getFileHandle('saved_palettes.json', { create: true });
+          const savedPalWritable = await savedPalFileHandle.createWritable();
+          await savedPalWritable.write(JSON.stringify(state.savedPalettes, null, 2));
+          await savedPalWritable.close();
+        } catch (err) {
+          console.warn('Folder write error:', err);
+        }
+      }
+    }
+
+    async function selectAutoSaveFolder() {
+      if (!window.showDirectoryPicker) {
+        downloadPaletteJson();
+        showToast('フォルダ直接保存非対応のためJSON保存を実行しました');
+        return;
+      }
+      try {
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        state.directoryHandle = dirHandle;
+        const folderName = dirHandle.name || '選択フォルダ';
+        document.getElementById('autoSaveBadge').textContent = `自動保存: 📁 ${folderName}`;
+        document.getElementById('autoSaveBadge').className =
+          'text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        await performAutoSave();
+        showToast(`フォルダ「${folderName}」への自動保存を開始しました`);
+      } catch (err) {
+        if (err && err.name !== 'AbortError') {
+          downloadPaletteJson();
+          showToast('JSONファイルをダウンロードしました');
+        }
+      }
+    }
+
+    function downloadPaletteJson() {
+      const payload = buildExportPayload();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'palette_autosave.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function getCanvasMousePos(canvas, evt) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (evt.clientX - rect.left) * scaleX,
+        y: (evt.clientY - rect.top) * scaleY
+      };
+    }
+
+    function dist(x1, y1, x2, y2) {
+      return Math.hypot(x2 - x1, y2 - y1);
+    }
+
+    function cycleNodeCurveMode(shape, nodeIdx) {
+      if (!shape || !shape.nodes || nodeIdx < 0 || nodeIdx >= shape.nodes.length - 1) return;
+      const order = ['straight', 'left', 'right'];
+      const cur = shape.nodes[nodeIdx].curveMode || 'straight';
+      const next = order[(order.indexOf(cur) + 1) % order.length];
+      shape.nodes[nodeIdx].curveMode = next;
+      state.currentCurveMode = next;
+    }
+
+    function eraseAtPoint(col, row) {
+      const candidates = state.onlyMoveSelected
+        ? state.shapes.filter(s => state.selectedShapeIds.includes(s.id))
+        : state.shapes;
+
+      for (let i = candidates.length - 1; i >= 0; i--) {
+        const sh = candidates[i];
+        if (isPointInsideShape(sh, col, row)) {
+          state.shapes = state.shapes.filter(s => s.id !== sh.id);
+          state.selectedShapeIds = state.selectedShapeIds.filter(id => id !== sh.id);
+          if (state.activeShapeId === sh.id) {
+            state.activeShapeId = state.selectedShapeIds[state.selectedShapeIds.length - 1] || null;
+            state.activeNodeIndex = 0;
+          }
+          syncUIWithSelectedShape();
+          return;
+        }
+      }
+
+      const r = Math.floor(row);
+      const c = Math.floor(col);
+      if (r >= 0 && r < state.gridRows && c >= 0 && c < GRID_COLS) {
+        if (state.grid[r] && state.grid[r][c]) {
+          state.grid[r][c] = null;
+        }
+      }
+    }
+
+    const dragState = {
+      active: false,
+      type: null, // 'nodeLeft' | 'nodeRight' | 'nodeCenter' | 'newShape' | 'moveShapes' | 'erase'
+      nodeIndex: 0,
+      moved: false,
+      wasAlreadySelected: false,
+      dragOffsetCols: 0,
+      startGridCol: 0,
+      startGridRow: 0,
+      initialSelectedSnapshots: []
+    };
+
+    function updateHoverState(pos, gridPt) {
+      hoverState.inside = true;
+      hoverState.px = pos.x;
+      hoverState.py = pos.y;
+      hoverState.col = gridPt.col;
+      hoverState.row = gridPt.row;
+      hoverState.type = null;
+      hoverState.shapeId = null;
+      hoverState.nodeIndex = -1;
+      hoverState.segIndex = -1;
+      hoverState.label = '';
+
+      const lblHover = document.getElementById('lblHoverTarget');
+      const activeShape = getActiveShape();
+
+      // 1. Eraser mode hover preview
+      if (state.mode === 'eraser') {
+        const candidates = state.onlyMoveSelected
+          ? state.shapes.map((s, i) => ({ s, i })).filter(item => state.selectedShapeIds.includes(item.s.id))
+          : state.shapes.map((s, i) => ({ s, i }));
+        for (let idx = candidates.length - 1; idx >= 0; idx--) {
+          const { s, i } = candidates[idx];
+          if (isPointInsideShape(s, gridPt.col, gridPt.row)) {
+            hoverState.type = 'eraseShape';
+            hoverState.shapeId = s.id;
+            hoverState.label = `🗑 クリックで消去: ${getShapeDisplayName(s, i)}`;
+            if (lblHover) lblHover.textContent = hoverState.label;
+            return;
+          }
+        }
+        if (lblHover) lblHover.textContent = '消しゴム: 図形に合わせてクリックで消去';
+        return;
+      }
+
+      // 2. Relay Delete Mode hover preview
+      if (state.relaySubMode === 'delete' && activeShape) {
+        const nodes = activeShape.nodes;
+        const hitRadius = 15;
+        for (let k = 1; k < nodes.length - 1; k++) {
+          const n = nodes[k];
+          const pC = gridToPaletteXY((n.left + n.right) * 0.5, n.y);
+          if (dist(pos.x, pos.y, pC.x, pC.y) <= hitRadius) {
+            hoverState.type = 'relayDelete';
+            hoverState.shapeId = activeShape.id;
+            hoverState.nodeIndex = k;
+            hoverState.label = `✕ 中継${k}を削除`;
+            if (lblHover) lblHover.textContent = hoverState.label;
+            return;
+          }
+        }
+        if (lblHover) lblHover.textContent = '中継点削除モード: 削除する中継点(●)をクリック';
+        return;
+      }
+
+      // 3. Relay Add Mode hover preview on selected shape
+      if (state.relaySubMode === 'add' && activeShape) {
+        const nodes = activeShape.nodes;
+        const step1920 = getMinFineStepY();
+        if (isPointInsideShape(activeShape, gridPt.col, gridPt.row)) {
+          for (let k = 0; k < nodes.length - 1; k++) {
+            const n0 = nodes[k];
+            const n1 = nodes[k + 1];
+            if (gridPt.row >= n0.y && gridPt.row <= n1.y && (n1.y - n0.y) >= step1920 * 2) {
+              const insY = computeNodeSnappedY(gridPt.row, n0.y + step1920, n1.y - step1920, n0.y, n1.y);
+              const tau = (insY - n0.y) / Math.max(step1920, n1.y - n0.y);
+              const { leftCol, rightCol } = evaluateSegmentEdgesAtTau(n0, n1, tau);
+              const insL = snapInt(leftCol, 0, GRID_COLS - 1);
+              const insR = Math.max(insL + 1, snapInt(rightCol, 1, GRID_COLS));
+
+              hoverState.type = 'relayAdd';
+              hoverState.shapeId = activeShape.id;
+              hoverState.segIndex = k;
+              hoverState.insertY = insY;
+              hoverState.insertLeft = insL;
+              hoverState.insertRight = insR;
+              hoverState.label = `＋ 中継点を配置 (Y:${formatYValue(insY)})`;
+              if (lblHover) lblHover.textContent = hoverState.label;
+              return;
+            }
+          }
+        }
+        if (lblHover) lblHover.textContent = '中継点追加モード: 選択図形の上をクリックして中継点を配置';
+        return;
+      }
+
+      // 4. Active shape handle hover preview
+      if (activeShape) {
+        const hitRadius = 13;
+        const nodes = activeShape.nodes;
+        for (let k = 0; k < nodes.length; k++) {
+          const n = nodes[k];
+          const pL = gridToPaletteXY(n.left, n.y);
+          const pR = gridToPaletteXY(n.right, n.y);
+          const pC = gridToPaletteXY((n.left + n.right) * 0.5, n.y);
+          const nodeTitle = k === 0 ? '始点' : (k === nodes.length - 1 ? '終点' : `中継${k}`);
+
+          if (dist(pos.x, pos.y, pL.x, pL.y) <= hitRadius) {
+            hoverState.type = 'handleLeft';
+            hoverState.shapeId = activeShape.id;
+            hoverState.nodeIndex = k;
+            hoverState.label = `${nodeTitle}・左端の幅調整`;
+            if (lblHover) lblHover.textContent = hoverState.label;
+            return;
+          }
+          if (dist(pos.x, pos.y, pR.x, pR.y) <= hitRadius) {
+            hoverState.type = 'handleRight';
+            hoverState.shapeId = activeShape.id;
+            hoverState.nodeIndex = k;
+            hoverState.label = `${nodeTitle}・右端の幅調整`;
+            if (lblHover) lblHover.textContent = hoverState.label;
+            return;
+          }
+          if (dist(pos.x, pos.y, pC.x, pC.y) <= hitRadius + 3) {
+            hoverState.type = 'handleCenter';
+            hoverState.shapeId = activeShape.id;
+            hoverState.nodeIndex = k;
+            hoverState.label = k < nodes.length - 1
+              ? `${nodeTitle}を移動 / クリックでカーブ切替`
+              : `${nodeTitle}を移動`;
+            if (lblHover) lblHover.textContent = hoverState.label;
+            return;
+          }
+        }
+      }
+
+      // 5. Shape selection hover preview
+      const searchList = state.onlyMoveSelected
+        ? state.shapes.map((s, i) => ({ s, i })).filter(item => state.selectedShapeIds.includes(item.s.id))
+        : state.shapes.map((s, i) => ({ s, i }));
+
+      for (let idx = searchList.length - 1; idx >= 0; idx--) {
+        const { s, i } = searchList[idx];
+        if (isPointInsideShape(s, gridPt.col, gridPt.row)) {
+          hoverState.type = 'shape';
+          hoverState.shapeId = s.id;
+          const isAlreadySel = state.selectedShapeIds.includes(s.id);
+          hoverState.label = isAlreadySel
+            ? `ドラッグで移動 / クリックで選択解除 (${getShapeDisplayName(s, i)})`
+            : `クリックで選択: ${getShapeDisplayName(s, i)}`;
+          if (lblHover) lblHover.textContent = hoverState.label;
+          return;
+        }
+      }
+
+      // 6. Empty space hover: if selected -> inform click will deselect; if unselected -> show new shape width preview
+      if (state.selectedShapeIds.length > 0) {
+        if (lblHover) lblHover.textContent = 'クリックで選択を解除';
+      } else if (!state.onlyMoveSelected) {
+        const w = Math.min(GRID_COLS, Math.max(1, state.lastUsedWidth));
+        const startLeft = snapInt(Math.floor(gridPt.col) - Math.floor((w - 1) / 2), 0, GRID_COLS - w);
+        const endY = snapInt(gridPt.row, 1, state.gridRows);
+        hoverState.type = 'newShapePreview';
+        hoverState.insertLeft = startLeft;
+        hoverState.insertRight = startLeft + w;
+        hoverState.insertY = endY;
+        hoverState.label = `新規作成 (幅:${w}マス)`;
+        if (lblHover) lblHover.textContent = `ドラッグで新規作成 (前回の幅: ${w}マス)`;
+      }
+    }
+
+    paletteCanvas.addEventListener('pointerdown', (evt) => {
+      evt.preventDefault();
+      paletteCanvas.setPointerCapture(evt.pointerId);
+
+      const pos = getCanvasMousePos(paletteCanvas, evt);
+      const gridPt = paletteXYToGrid(pos.x, pos.y);
+      const rows = state.gridRows;
+
+      if (state.mode === 'eraser') {
+        saveHistory();
+        dragState.active = true;
+        dragState.type = 'erase';
+        eraseAtPoint(gridPt.col, gridPt.row);
+        renderAll();
+        triggerAutoSave();
+        return;
+      }
+
+      const activeShape = getActiveShape();
+
+      // 1. Relay Point Delete sub-mode: click a relay point on the selected shape to remove it
+      if (state.relaySubMode === 'delete' && activeShape) {
+        const hitRadius = 15;
+        const nodes = activeShape.nodes;
+        for (let k = 1; k < nodes.length - 1; k++) {
+          const n = nodes[k];
+          const pC = gridToPaletteXY((n.left + n.right) * 0.5, n.y);
+          if (dist(pos.x, pos.y, pC.x, pC.y) <= hitRadius) {
+            deleteRelayPointByIndex(activeShape, k);
+            updateHoverState(pos, gridPt);
+            renderAll();
+            return;
+          }
+        }
+        // Clicked outside any relay point while in delete mode -> exit relay sub-mode or deselect
+        state.relaySubMode = null;
+        selectSingleShape(null);
+        updateHoverState(pos, gridPt);
+        renderAll();
+        showToast('選択を解除しました');
+        return;
+      }
+
+      // 2. Relay Point Add sub-mode: click inside the selected shape to place a relay point
+      if (state.relaySubMode === 'add' && activeShape) {
+        if (isPointInsideShape(activeShape, gridPt.col, gridPt.row)) {
+          if (insertRelayPointAtRow(activeShape, gridPt.row)) {
+            updateHoverState(pos, gridPt);
+            renderAll();
+            return;
+          }
+        } else {
+          // Clicked outside selected shape -> deselect and exit add mode
+          state.relaySubMode = null;
+          selectSingleShape(null);
+          updateHoverState(pos, gridPt);
+          renderAll();
+          showToast('選択を解除しました');
+          return;
+        }
+      }
+
+      // 3. Check handles of the active shape
+      if (activeShape) {
+        const hitRadius = 13;
+        const nodes = activeShape.nodes;
+
+        for (let k = 0; k < nodes.length; k++) {
+          const n = nodes[k];
+          const pL = gridToPaletteXY(n.left, n.y);
+          const pR = gridToPaletteXY(n.right, n.y);
+          const pC = gridToPaletteXY((n.left + n.right) * 0.5, n.y);
+
+          if (dist(pos.x, pos.y, pL.x, pL.y) <= hitRadius) {
+            saveHistory();
+            state.activeNodeIndex = k;
+            dragState.active = true;
+            dragState.type = 'nodeLeft';
+            dragState.nodeIndex = k;
+            syncUIWithSelectedShape();
+            renderAll();
+            return;
+          }
+          if (dist(pos.x, pos.y, pR.x, pR.y) <= hitRadius) {
+            saveHistory();
+            state.activeNodeIndex = k;
+            dragState.active = true;
+            dragState.type = 'nodeRight';
+            dragState.nodeIndex = k;
+            syncUIWithSelectedShape();
+            renderAll();
+            return;
+          }
+          if (dist(pos.x, pos.y, pC.x, pC.y) <= hitRadius + 3) {
+            saveHistory();
+            state.activeNodeIndex = k;
+            dragState.active = true;
+            dragState.moved = false;
+            dragState.type = 'nodeCenter';
+            dragState.nodeIndex = k;
+            dragState.dragOffsetCols = Math.round(gridPt.col) - n.left;
+            syncUIWithSelectedShape();
+            renderAll();
+            return;
+          }
+        }
+      }
+
+      // 4. Check if clicking inside a shape
+      const searchList = state.onlyMoveSelected
+        ? state.shapes.filter(s => state.selectedShapeIds.includes(s.id))
+        : state.shapes;
+
+      for (let i = searchList.length - 1; i >= 0; i--) {
+        const sh = searchList[i];
+        if (isPointInsideShape(sh, gridPt.col, gridPt.row)) {
+          const alreadySelected = state.selectedShapeIds.includes(sh.id);
+          if (!alreadySelected) {
+            if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
+              state.selectedShapeIds.push(sh.id);
+              state.activeShapeId = sh.id;
+            } else {
+              selectSingleShape(sh.id, 0);
+            }
+          } else {
+            state.activeShapeId = sh.id;
+          }
+          state.currentColor = sh.color;
+          state.currentCurveMode = sh.nodes[0]?.curveMode || 'straight';
+          updateColorButtonsUI();
+          syncUIWithSelectedShape();
+
+          // Start dragging all currently selected shapes together (if released without moving and wasAlreadySelected, it will deselect)
+          saveHistory();
+          dragState.active = true;
+          dragState.type = 'moveShapes';
+          dragState.moved = false;
+          dragState.wasAlreadySelected = alreadySelected && !(evt.shiftKey || evt.ctrlKey || evt.metaKey);
+          dragState.startGridCol = Math.round(gridPt.col);
+          dragState.startGridRow = Math.round(gridPt.row);
+          dragState.initialSelectedSnapshots = getSelectedShapes().map(s => ({
+            id: s.id,
+            nodes: JSON.parse(JSON.stringify(s.nodes))
+          }));
+          renderAll();
+          return;
+        }
+      }
+
+      // 5. If any shape is currently selected and user clicks empty space (no buttons/handles/shapes), DESELECT instead of drawing
+      if (state.selectedShapeIds.length > 0) {
+        selectSingleShape(null);
+        updateHoverState(pos, gridPt);
+        renderAll();
+        showToast('選択を解除しました');
+        return;
+      }
+
+      if (state.onlyMoveSelected) {
+        showToast('「指定レイヤーのみ移動・編集」がONです');
+        return;
+      }
+
+      // 6. Unselected state: create a new shape starting at bottom (Y=0) using lastUsedWidth for both start and end
+      saveHistory();
+      const w = Math.min(GRID_COLS, Math.max(1, state.lastUsedWidth));
+      const startLeft = snapInt(Math.floor(gridPt.col) - Math.floor((w - 1) / 2), 0, GRID_COLS - w);
+      const clickedRow = snapInt(gridPt.row, 1, rows);
+      const newShape = normalizeShape({
+        id: 'shape_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        color: state.currentColor,
+        nodes: [
+          { left: startLeft, right: startLeft + w, y: 0, curveMode: state.currentCurveMode || 'straight' },
+          { left: startLeft, right: startLeft + w, y: Math.max(1, clickedRow), curveMode: 'straight' }
+        ]
+      });
+      state.shapes.push(newShape);
+      selectSingleShape(newShape.id, 1);
+      dragState.active = true;
+      dragState.type = 'newShape';
+      dragState.nodeIndex = 1;
+      syncUIWithSelectedShape();
+      renderAll();
+    });
+
+    paletteCanvas.addEventListener('pointermove', (evt) => {
+      const pos = getCanvasMousePos(paletteCanvas, evt);
+      const gridPt = paletteXYToGrid(pos.x, pos.y);
+      const rows = state.gridRows;
+
+      const dispX = Math.min(GRID_COLS, Math.max(1, Math.floor(gridPt.col) + 1));
+      const dispY = Math.min(rows, Math.max(1, Math.floor(gridPt.row) + 1));
+      document.getElementById('lblCursorCell').textContent = `X: ${dispX} , Y: ${dispY}`;
+
+      if (!dragState.active) {
+        updateHoverState(pos, gridPt);
+        renderPalette();
+        return;
+      }
+
+      if (dragState.type === 'erase') {
+        eraseAtPoint(gridPt.col, gridPt.row);
+        renderAll();
+        return;
+      }
+
+      const snappedCol = snapInt(gridPt.col, 0, GRID_COLS);
+      const snappedRow = snapInt(gridPt.row, 0, rows);
+
+      if (dragState.type === 'moveShapes') {
+        const dCol = snappedCol - dragState.startGridCol;
+        const dRow = snappedRow - dragState.startGridRow;
+        if (dCol !== 0 || dRow !== 0) {
+          dragState.moved = true;
+        }
+
+        for (const snap of dragState.initialSelectedSnapshots) {
+          const sh = state.shapes.find(s => s.id === snap.id);
+          if (!sh) continue;
+
+          let minLeft = GRID_COLS, maxRight = 0, minY = rows, maxY = 0;
+          for (const n of snap.nodes) {
+            minLeft = Math.min(minLeft, n.left);
+            maxRight = Math.max(maxRight, n.right);
+            minY = Math.min(minY, n.y);
+            maxY = Math.max(maxY, n.y);
+          }
+          const clampedDCol = Math.max(-minLeft, Math.min(GRID_COLS - maxRight, dCol));
+          const clampedDRow = Math.max(-minY, Math.min(rows - maxY, dRow));
+
+          for (let k = 0; k < sh.nodes.length; k++) {
+            sh.nodes[k].left = snap.nodes[k].left + clampedDCol;
+            sh.nodes[k].right = snap.nodes[k].right + clampedDCol;
+            sh.nodes[k].y = snapFine1920(snap.nodes[k].y + clampedDRow, 0, rows, rows);
+          }
+        }
+        syncUIWithSelectedShape();
+        renderAll();
+        return;
+      }
+
+      const shape = getActiveShape();
+      if (!shape) return;
+      const nodes = shape.nodes;
+      const k = dragState.nodeIndex;
+      const node = nodes[k];
+      if (!node) return;
+
+      const step1920 = getMinFineStepY(rows);
+      const prevY = k > 0 ? nodes[k - 1].y : null;
+      const nextY = k < nodes.length - 1 ? nodes[k + 1].y : null;
+
+      if (dragState.type === 'nodeLeft') {
+        node.left = Math.min(node.right - 1, Math.max(0, snappedCol));
+        setLastUsedWidth(node.right - node.left);
+      } else if (dragState.type === 'nodeRight') {
+        node.right = Math.max(node.left + 1, Math.min(GRID_COLS, snappedCol));
+        setLastUsedWidth(node.right - node.left);
+      } else if (dragState.type === 'nodeCenter') {
+        const w = node.right - node.left;
+        const newLeft = snapInt(snappedCol - dragState.dragOffsetCols, 0, GRID_COLS - w);
+        const newY = computeNodeSnappedY(gridPt.row, 0, rows, prevY, nextY);
+        if (newLeft !== node.left || Math.abs(newY - node.y) > 1e-5) {
+          dragState.moved = true;
+        }
+        node.left = newLeft;
+        node.right = newLeft + w;
+        node.y = newY;
+      } else if (dragState.type === 'newShape') {
+        const endNode = nodes[nodes.length - 1];
+        const w = endNode.right - endNode.left;
+        const newLeft = snapInt(Math.floor(gridPt.col) - Math.floor((w - 1) / 2), 0, GRID_COLS - w);
+        const newY = computeNodeSnappedY(gridPt.row, nodes[0].y + step1920, rows, nodes[0].y, null);
+        endNode.left = newLeft;
+        endNode.right = newLeft + w;
+        endNode.y = Math.max(nodes[0].y + step1920, newY);
+      }
+
+      syncUIWithSelectedShape();
+      renderAll();
+    });
+
+    paletteCanvas.addEventListener('pointerleave', () => {
+      hoverState.inside = false;
+      hoverState.type = null;
+      const lblHover = document.getElementById('lblHoverTarget');
+      if (lblHover) lblHover.textContent = 'カーソル位置 (左下起点):';
+      if (!dragState.active) {
+        renderPalette();
+      }
+    });
+
+    function finishPointerDrag() {
+      if (!dragState.active) return;
+
+      if (dragState.type === 'nodeCenter' && !dragState.moved) {
+        const shape = getActiveShape();
+        if (shape && dragState.nodeIndex < shape.nodes.length - 1) {
+          cycleNodeCurveMode(shape, dragState.nodeIndex);
+          syncUIWithSelectedShape();
+        }
+      } else if (dragState.type === 'moveShapes' && !dragState.moved && dragState.wasAlreadySelected) {
+        // Clicking on an already-selected shape (where there is no handle/button) without dragging deselects it
+        state.history.pop();
+        updateUndoButton();
+        selectSingleShape(null);
+        showToast('選択を解除しました');
+      }
+
+      dragState.active = false;
+      dragState.type = null;
+      renderAll();
+      triggerAutoSave();
+    }
+
+    paletteCanvas.addEventListener('pointerup', finishPointerDrag);
+    paletteCanvas.addEventListener('pointercancel', finishPointerDrag);
+
+    function setMode(newMode) {
+      state.mode = newMode;
+      if (newMode === 'eraser') {
+        state.relaySubMode = null;
+      }
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === newMode);
+      });
+      syncUIWithSelectedShape();
+      showToast(newMode === 'eraser' ? '図形やマスをクリックして消去' : 'パレット上で作成・編集');
+      renderAll();
+    }
+
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => setMode(btn.dataset.mode));
+    });
+
+    document.getElementById('btnGridMinus').addEventListener('click', () => stepGridDivision(-1));
+    document.getElementById('btnGridPlus').addEventListener('click', () => stepGridDivision(1));
+
+    function updateColorButtonsUI() {
+      document.querySelectorAll('.color-swatch').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.color === state.currentColor);
+      });
+    }
+
+    document.querySelectorAll('.color-swatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.currentColor = btn.dataset.color;
+        updateColorButtonsUI();
+        const selected = getSelectedShapes();
+        if (selected.length > 0 && state.mode === 'draw') {
+          saveHistory();
+          selected.forEach(sh => { sh.color = state.currentColor; });
+          syncUIWithSelectedShape();
+          renderAll();
+          triggerAutoSave();
+        }
+      });
+    });
+
+    // Opacity Sliders (Slide & Guide)
+    document.getElementById('rngSlideOpacity').addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      state.slideOpacity = val / 100;
+      document.getElementById('lblSlideOpacity').textContent = `${val}%`;
+      renderAll();
+      triggerAutoSave();
+    });
+
+    document.getElementById('rngGuideOpacity').addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      state.guideOpacity = val / 100;
+      document.getElementById('lblGuideOpacity').textContent = `${val}%`;
+      renderAll();
+      triggerAutoSave();
+    });
+
+    // Curve Mode Selector Buttons: Straight, ((, ))
+    document.querySelectorAll('.curve-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.currentCurveMode = btn.dataset.curve;
+        const selected = getSelectedShapes();
+        if (selected.length > 0) {
+          saveHistory();
+          if (selected.length === 1) {
+            const sh = selected[0];
+            const segIdx = Math.min(state.activeNodeIndex, sh.nodes.length - 2);
+            sh.nodes[segIdx].curveMode = state.currentCurveMode;
+          } else {
+            // Apply to all segments of all selected shapes when multiple layers are selected
+            selected.forEach(sh => {
+              sh.nodes.forEach(n => { n.curveMode = state.currentCurveMode; });
+            });
+          }
+          renderAll();
+          triggerAutoSave();
+        }
+        syncUIWithSelectedShape();
+      });
+    });
+
+    document.getElementById('btnAddRelayPoint').addEventListener('click', () => toggleRelaySubMode('add'));
+    document.getElementById('btnDeleteRelayPoint').addEventListener('click', () => toggleRelaySubMode('delete'));
+
+    // Collapsible Tabs Setup (5. Layer Management, 6. Shape Templates, 7. Full Palette Save)
+    document.querySelectorAll('[data-collapse-target]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.collapseTarget;
+        const arrowId = btn.dataset.collapseArrow;
+        const bodyEl = document.getElementById(targetId);
+        const arrowEl = document.getElementById(arrowId);
+        if (!bodyEl) return;
+        const isHidden = bodyEl.classList.toggle('hidden');
+        if (arrowEl) {
+          arrowEl.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
+        }
+      });
+    });
+
+    // Layer Controls
+    document.getElementById('btnLayerUp').addEventListener('click', () => moveSelectedLayers(1));
+    document.getElementById('btnLayerDown').addEventListener('click', () => moveSelectedLayers(-1));
+
+    document.getElementById('chkOnlyMoveSelected').addEventListener('change', (e) => {
+      state.onlyMoveSelected = e.target.checked;
+      showToast(state.onlyMoveSelected ? '指定レイヤーのみ移動・編集モードON' : '通常編集モード');
+    });
+
+    document.getElementById('btnSelectAllLayers').addEventListener('click', () => {
+      state.selectedShapeIds = state.shapes.map(s => s.id);
+      if (!state.activeShapeId && state.shapes.length > 0) {
+        state.activeShapeId = state.shapes[state.shapes.length - 1].id;
+      }
+      syncUIWithSelectedShape();
+      renderAll();
+    });
+
+    document.getElementById('btnDeselectAllLayers').addEventListener('click', () => {
+      selectSingleShape(null);
+      renderAll();
+    });
+
+    document.getElementById('btnCopyShape').addEventListener('click', copySelectedShape);
+    document.getElementById('btnPasteShape').addEventListener('click', pasteClipboardShape);
+
+    document.getElementById('btnDeleteShape').addEventListener('click', () => {
+      if (state.selectedShapeIds.length === 0) return;
+      saveHistory();
+      const delSet = new Set(state.selectedShapeIds);
+      state.shapes = state.shapes.filter(s => !delSet.has(s.id));
+      const nextActive = state.shapes.length > 0 ? state.shapes[state.shapes.length - 1].id : null;
+      selectSingleShape(nextActive, 0);
+      renderAll();
+      triggerAutoSave();
+    });
+
+    document.getElementById('btnSaveTemplate').addEventListener('click', saveSelectedShapeAsTemplate);
+    document.getElementById('inpTemplateName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveSelectedShapeAsTemplate();
+    });
+
+    document.getElementById('btnSaveFullPalette').addEventListener('click', saveFullPaletteWithName);
+    document.getElementById('inpPaletteSaveName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveFullPaletteWithName();
+    });
+
+    document.getElementById('btnSelectFolder').addEventListener('click', selectAutoSaveFolder);
+    document.getElementById('btnDownloadJson').addEventListener('click', downloadPaletteJson);
+
+    document.getElementById('btnImportJson').addEventListener('click', () => {
+      document.getElementById('fileImportInput').click();
+    });
+
+    document.getElementById('fileImportInput').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          applyLoadedData(data);
+          showToast('JSONデータを読み込みました');
+        } catch (err) {
+          showToast('JSONファイルの形式が正しくありません');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    document.getElementById('chkShowMainLines').addEventListener('change', (e) => {
+      state.showMainLines = e.target.checked;
+      renderPreview();
+    });
+
+    document.getElementById('chkShowSubGrid').addEventListener('change', (e) => {
+      state.showSubGrid = e.target.checked;
+      renderPreview();
+    });
+
+    document.getElementById('btnUndo').addEventListener('click', undo);
+
+    window.addEventListener('keydown', (e) => {
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        copySelectedShape();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        pasteClipboardShape();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (state.selectedShapeIds.length > 0) {
+          e.preventDefault();
+          document.getElementById('btnDeleteShape').click();
+        }
+      }
+    });
+
+    document.getElementById('btnClearAll').addEventListener('click', () => {
+      saveHistory();
+      state.grid = Array.from({ length: state.gridRows }, () => Array(GRID_COLS).fill(null));
+      state.shapes = [];
+      selectSingleShape(null);
+      renderAll();
+      triggerAutoSave();
+    });
+
+    document.getElementById('btnExportPreview').addEventListener('click', () => {
+      const dataUrl = previewCanvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = 'perspective_preview.png';
+      link.href = dataUrl;
+      link.click();
+    });
+
+    function applyLoadedData(data) {
+      if (!data) return;
+      const rows = ALLOWED_ROW_DIVISIONS.includes(data.gridRows) ? data.gridRows : 16;
+      state.gridRows = rows;
+      if (typeof data.lastUsedWidth === 'number') {
+        setLastUsedWidth(data.lastUsedWidth);
+      }
+      if (typeof data.slideOpacity === 'number') {
+        state.slideOpacity = data.slideOpacity;
+        const pct = Math.round(state.slideOpacity * 100);
+        document.getElementById('rngSlideOpacity').value = pct;
+        document.getElementById('lblSlideOpacity').textContent = `${pct}%`;
+      }
+      if (typeof data.guideOpacity === 'number') {
+        state.guideOpacity = data.guideOpacity;
+        const pct = Math.round(state.guideOpacity * 100);
+        document.getElementById('rngGuideOpacity').value = pct;
+        document.getElementById('lblGuideOpacity').textContent = `${pct}%`;
+      }
+      state.grid = Array.isArray(data.grid) && data.grid.length === rows
+        ? data.grid
+        : Array.from({ length: rows }, () => Array(GRID_COLS).fill(null));
+      state.shapes = Array.isArray(data.shapes) ? data.shapes.map(s => normalizeShape(s, rows)) : [];
+      if (Array.isArray(data.templates)) {
+        state.templates = data.templates;
+      }
+      if (Array.isArray(data.savedPalettes)) {
+        state.savedPalettes = data.savedPalettes;
+      }
+      const lastId = state.shapes.length > 0 ? state.shapes[state.shapes.length - 1].id : null;
+      selectSingleShape(lastId, 0);
+      updateGridDivisionUI();
+      updateColorButtonsUI();
+      renderTemplateList();
+      renderSavedPaletteList();
+      syncUIWithSelectedShape();
+      renderAll();
+    }
+
+    function initApp() {
+      try {
+        const savedTpls = localStorage.getItem(STORAGE_KEY_TEMPLATES);
+        if (savedTpls) {
+          state.templates = JSON.parse(savedTpls);
+        } else {
+          state.templates = [
+            {
+              id: 'tpl_default_1',
+              name: 'ガイド・カーブ（（',
+              color: 'green',
+              nodesRatio: [
+                { left: 2, right: 6, yRatio: 0, curveMode: 'left' },
+                { left: 5, right: 9, yRatio: 1.0, curveMode: 'straight' }
+              ]
+            },
+            {
+              id: 'tpl_default_2',
+              name: 'スライド・中継S字',
+              color: 'yellowgreen',
+              nodesRatio: [
+                { left: 2, right: 5, yRatio: 0, curveMode: 'right' },
+                { left: 7, right: 10, yRatio: 0.5, curveMode: 'left' },
+                { left: 3, right: 6, yRatio: 1.0, curveMode: 'straight' }
+              ]
+            }
+          ];
+        }
+      } catch (e) {
+        state.templates = [];
+      }
+
+      try {
+        const savedPals = localStorage.getItem(STORAGE_KEY_SAVED_PALETTES);
+        if (savedPals) {
+          state.savedPalettes = JSON.parse(savedPals);
+        } else {
+          state.savedPalettes = [];
+        }
+      } catch (e) {
+        state.savedPalettes = [];
+      }
+
+      let loaded = false;
+      try {
+        const savedPalette = localStorage.getItem(STORAGE_KEY_PALETTE);
+        if (savedPalette) {
+          applyLoadedData(JSON.parse(savedPalette));
+          loaded = true;
+        }
+      } catch (e) {
+        loaded = false;
+      }
+
+      if (!loaded) {
+        const rows = state.gridRows;
+        state.shapes = [
+          normalizeShape({
+            id: 'sample_orange',
+            color: 'orange',
+            nodes: [
+              { left: 1, right: 5, y: 0, curveMode: 'left' },
+              { left: 4, right: 8, y: Math.round(rows * 0.5), curveMode: 'right' },
+              { left: 2, right: 5, y: Math.round(rows * 0.88), curveMode: 'straight' }
+            ]
+          }),
+          normalizeShape({
+            id: 'sample_green',
+            color: 'green',
+            nodes: [
+              { left: 6, right: 11, y: 0, curveMode: 'right' },
+              { left: 4, right: 8, y: rows, curveMode: 'straight' }
+            ]
+          })
+        ];
+        selectSingleShape('sample_green', 0);
+        updateColorButtonsUI();
+        updateGridDivisionUI();
+        renderTemplateList();
+        renderSavedPaletteList();
+        syncUIWithSelectedShape();
+        renderAll();
+      }
+
+      state.history = [];
+      updateUndoButton();
+    }
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>
