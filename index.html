@@ -117,125 +117,121 @@
   </header>
 
   <!-- Main Workspace -->
-  <main class="flex-1 max-w-[1680px] w-full mx-auto p-3 sm:p-4 flex flex-col gap-4">
+  <main class="flex-1 max-w-[1440px] w-full mx-auto p-1.5 sm:p-3 md:p-4 flex flex-col gap-2.5 sm:gap-4">
 
     <!-- 1. TOP SECTION: Enlarged Perspective Preview -->
-    <section class="w-full flex flex-col bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <div class="flex items-center gap-3">
-          <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+    <section class="w-full flex flex-col bg-slate-900/80 border border-slate-800 rounded-2xl p-2 sm:p-4">
+      <div class="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+        <div class="flex items-center gap-2 sm:gap-3">
+          <h2 class="text-xs sm:text-base font-bold text-white flex items-center gap-1.5">
             <span>プレビュー</span>
           </h2>
-          <span id="statusToast" class="text-xs text-sky-400 font-medium bg-slate-950/80 border border-slate-800 px-3 py-1 rounded-full">パレット上で作成・編集</span>
+          <span id="statusToast" class="text-[10px] sm:text-xs text-sky-400 font-medium bg-slate-950/80 border border-slate-800 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full truncate max-w-[200px] sm:max-w-none">パレット上で作成・編集</span>
         </div>
 
-        <div class="flex items-center gap-2 text-xs flex-wrap">
-          <label class="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700 cursor-pointer hover:bg-slate-700/70 transition">
-            <input type="checkbox" id="chkShowMainLines" checked class="w-3.5 h-3.5 rounded accent-sky-400" />
+        <div class="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs flex-wrap">
+          <label class="flex items-center gap-1 text-[10px] sm:text-xs text-slate-300 bg-slate-800 px-2 sm:px-3 py-1 rounded-lg border border-slate-700 cursor-pointer hover:bg-slate-700/70 transition">
+            <input type="checkbox" id="chkShowMainLines" checked class="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded accent-sky-400" />
             <span>白枠・レーン線</span>
           </label>
-          <label class="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700 cursor-pointer hover:bg-slate-700/70 transition">
-            <input type="checkbox" id="chkShowSubGrid" class="w-3.5 h-3.5 rounded accent-sky-400" />
+          <label class="flex items-center gap-1 text-[10px] sm:text-xs text-slate-300 bg-slate-800 px-2 sm:px-3 py-1 rounded-lg border border-slate-700 cursor-pointer hover:bg-slate-700/70 transition">
+            <input type="checkbox" id="chkShowSubGrid" class="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded accent-sky-400" />
             <span>細分割グリッド線</span>
           </label>
         </div>
       </div>
 
-      <div class="w-full max-w-[1060px] mx-auto relative rounded-xl overflow-hidden canvas-shadow bg-black flex items-center justify-center">
+      <div class="w-full max-w-[1000px] mx-auto relative rounded-xl overflow-hidden canvas-shadow bg-black flex items-center justify-center">
         <canvas id="previewCanvas" width="1120" height="630" class="w-full h-auto block"></canvas>
       </div>
     </section>
 
-    <!-- 2. MIDDLE SECTION: Left Vertical Controls | Center Palette | Right Vertical Controls -->
-    <section class="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+    <!-- 2. MIDDLE SECTION: Always 3 Columns (Compact Left Controls | Center Palette | Compact Right Controls) -->
+    <section class="w-full max-w-[1120px] mx-auto grid grid-cols-[76px_minmax(0,1fr)_76px] sm:grid-cols-[136px_minmax(0,1fr)_136px] md:grid-cols-[168px_minmax(0,1fr)_168px] gap-1.5 sm:gap-3 items-stretch">
 
       <!-- LEFT VERTICAL TOOLBAR: Undo/Redo, Tools, Relay Point, Copy/Paste/Delete -->
-      <div class="lg:col-span-3 flex flex-col gap-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5">
+      <div class="flex flex-col gap-1.5 sm:gap-2.5 bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5">
 
         <!-- History: Undo / Redo -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">履歴操作</span>
-            <span class="text-[11px] font-mono text-slate-400">Ctrl+Z / Ctrl+Y</span>
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5">
+          <div class="flex items-center justify-between mb-1 sm:mb-1.5">
+            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">履歴</span>
+            <span class="hidden sm:inline text-[10px] font-mono text-slate-400">Ctrl+Z/Y</span>
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <button id="btnUndo" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex items-center justify-center gap-1.5" title="元に戻す (Ctrl+Z)">
-              <span class="text-sm">↩</span>
-              <span>戻る</span>
+          <div class="grid grid-cols-2 gap-1 sm:gap-1.5">
+            <button id="btnUndo" class="py-1.5 sm:py-2 px-1 sm:px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1" title="元に戻す (Ctrl+Z)">
+              <span class="text-xs sm:text-sm leading-none">↩</span>
+              <span class="leading-none">戻る</span>
             </button>
-            <button id="btnRedo" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex items-center justify-center gap-1.5" title="やり直す (Ctrl+Y)">
-              <span>進む</span>
-              <span class="text-sm">↪</span>
+            <button id="btnRedo" class="py-1.5 sm:py-2 px-1 sm:px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1" title="やり直す (Ctrl+Y)">
+              <span class="text-xs sm:text-sm leading-none">↪</span>
+              <span class="leading-none">進む</span>
             </button>
           </div>
         </div>
 
-        <!-- Mode Selector: Draw/Edit vs Eraser (also deletes Relay Points) -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">ツール選択</span>
-            <span class="text-[10px] text-slate-400">※消しゴムで中継点も削除可</span>
+        <!-- Mode Selector: Draw/Edit vs Eraser -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5">
+          <div class="flex items-center justify-between mb-1 sm:mb-1.5">
+            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">ツール</span>
           </div>
-          <div class="flex flex-col gap-2">
-            <button data-mode="draw" class="tool-btn active w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-800/90 text-xs font-bold flex items-center justify-center gap-2 transition">
-              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <div class="flex flex-col gap-1 sm:gap-1.5">
+            <button data-mode="draw" class="tool-btn active w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg border border-slate-700 bg-slate-800/90 text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
-              <span>描画・編集</span>
+              <span class="truncate">描画</span>
             </button>
-            <button data-mode="eraser" class="tool-btn w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-800/90 text-xs font-bold flex items-center justify-center gap-2 transition">
-              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <button data-mode="eraser" class="tool-btn w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg border border-slate-700 bg-slate-800/90 text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition" title="図形や中継点の枠をクリックして削除">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              <span>消しゴム (図形・中継点削除)</span>
+              <span class="truncate">消しゴム</span>
             </button>
           </div>
         </div>
 
         <!-- Relay Point Addition & Snap Mode -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3 flex flex-col gap-2.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">中継点</span>
-            <span id="lblSelectedNodeInfo" class="text-[11px] font-mono text-amber-300 font-semibold truncate max-w-[140px]">未選択</span>
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col gap-1.5 sm:gap-2">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">中継点</span>
+            <span id="lblSelectedNodeInfo" class="text-[9px] sm:text-[11px] font-mono text-amber-300 font-semibold truncate">未選択</span>
           </div>
 
-          <button id="btnAddRelayPoint" class="relay-mode-btn w-full py-2.5 px-3 rounded-xl bg-fuchsia-600/20 hover:bg-fuchsia-600/35 border border-fuchsia-500/40 text-fuchsia-200 text-xs font-bold transition flex items-center justify-center gap-1.5" title="未選択でもONにでき、図形をクリックして選択→クリックで中継点を追加します">
-            <span>＋ 中継点追加モード</span>
+          <button id="btnAddRelayPoint" class="relay-mode-btn w-full py-1.5 sm:py-2 px-1 sm:px-2 rounded-lg bg-fuchsia-600/20 hover:bg-fuchsia-600/35 border border-fuchsia-500/40 text-fuchsia-200 text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-0.5" title="未選択でもONにでき、図形をクリックして選択→クリックで中継点を追加します">
+            <span>＋中継追加</span>
           </button>
 
           <div class="pt-1 border-t border-slate-800/80">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-[11px] text-slate-400 font-medium">中継点の配置・移動間隔</span>
-              <span class="text-[10px] text-slate-500">※接近時は自動で1920</span>
-            </div>
-            <div class="grid grid-cols-2 gap-1.5">
-              <button id="btnSnapGrid" class="snap-btn active py-1.5 px-2 rounded-lg bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-200 transition">
-                グリッド間隔
+            <span class="block text-[9px] sm:text-[10px] text-slate-400 font-medium mb-1 truncate">配置間隔</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+              <button id="btnSnapGrid" class="snap-btn active py-1 px-1 rounded bg-slate-800 border border-slate-700 text-[9px] sm:text-[11px] font-semibold text-slate-200 transition truncate">
+                グリッド
               </button>
-              <button id="btnSnap1920" class="snap-btn py-1.5 px-2 rounded-lg bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-200 transition">
-                1920分割 (自由)
+              <button id="btnSnap1920" class="snap-btn py-1 px-1 rounded bg-slate-800 border border-slate-700 text-[9px] sm:text-[11px] font-semibold text-slate-200 transition truncate">
+                1920分
               </button>
             </div>
           </div>
         </div>
 
         <!-- Copy / Paste / Delete Actions -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3 mt-auto">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">コピー・削除操作</span>
-            <span class="text-[10px] font-mono text-slate-400">Ctrl+C / V</span>
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 mt-auto">
+          <div class="flex items-center justify-between mb-1 sm:mb-1.5">
+            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">編集</span>
+            <span class="hidden sm:inline text-[9px] font-mono text-slate-400">Ctrl+C/V</span>
           </div>
-          <div class="flex flex-col gap-2">
-            <div class="grid grid-cols-2 gap-2">
-              <button id="btnCopyShape" class="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="選択図形をコピー (Ctrl+C)">
-                <span>コピー</span>
+          <div class="flex flex-col gap-1 sm:gap-1.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-1.5">
+              <button id="btnCopyShape" class="py-1.5 px-1 sm:px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-0.5" title="選択図形をコピー (Ctrl+C)">
+                <span class="truncate">コピー</span>
               </button>
-              <button id="btnPasteShape" class="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="コピーした図形を貼り付け (Ctrl+V)">
-                <span>ペースト</span>
+              <button id="btnPasteShape" class="py-1.5 px-1 sm:px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-0.5" title="コピーした図形を貼り付け (Ctrl+V)">
+                <span class="truncate">貼付</span>
               </button>
             </div>
-            <button id="btnDeleteShape" class="w-full py-2 px-3 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-xs font-semibold text-rose-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="選択中の図形を削除 (Delete)">
-              <span>✕ 選択図形を削除</span>
+            <button id="btnDeleteShape" class="w-full py-1.5 px-1 sm:px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-[10px] sm:text-xs font-semibold text-rose-200 transition disabled:opacity-35 flex items-center justify-center gap-0.5" title="選択中の図形を削除 (Delete)">
+              <span>✕</span><span class="truncate">削除</span>
             </button>
           </div>
         </div>
@@ -243,98 +239,98 @@
       </div>
 
       <!-- CENTER COLUMN: 12×N Grid Palette Editor -->
-      <div class="lg:col-span-6 flex flex-col items-center justify-between bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
-        <div class="w-full flex flex-wrap items-center justify-between gap-2 mb-2">
-          <div>
-            <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+      <div class="flex flex-col items-center justify-between bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-3 min-w-0">
+        <div class="w-full flex flex-wrap items-center justify-between gap-1 mb-1 sm:mb-2">
+          <div class="min-w-0">
+            <h2 class="text-xs sm:text-base font-bold text-white flex items-center gap-1.5 flex-wrap">
               <span>パレット (<span id="lblPaletteTitleDims">12×16</span>)</span>
-              <span id="lblLastWidthBadge" class="text-xs font-mono font-semibold px-2.5 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30">新規幅: 2マス</span>
+              <span id="lblLastWidthBadge" class="text-[10px] sm:text-xs font-mono font-semibold px-1.5 sm:px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">新規幅: 2マス</span>
             </h2>
-            <p class="text-[11px] text-slate-300 mt-0.5">
-              始点・中継・終点をクリックすると<span class="text-sky-300 font-semibold">長方形の枠</span>が表示：左右の<span class="text-amber-300 font-semibold">縦辺ドラッグで幅調整</span>、枠内の<span class="text-emerald-300 font-semibold">内側ドラッグで移動</span>
+            <p class="hidden sm:block text-[11px] text-slate-300 mt-0.5">
+              始点・中継・終点の<span class="text-sky-300 font-semibold">長方形枠</span>：左右の<span class="text-amber-300 font-semibold">縦辺で幅調整</span>、枠の<span class="text-emerald-300 font-semibold">内側で移動</span>
             </p>
           </div>
         </div>
 
-        <div class="relative flex items-center justify-center my-1 w-full">
-          <canvas id="paletteCanvas" width="620" height="760" class="rounded-xl canvas-shadow bg-[#07090e] cursor-crosshair touch-none max-w-full h-auto"></canvas>
+        <div class="relative flex items-center justify-center my-0.5 w-full">
+          <canvas id="paletteCanvas" width="620" height="760" class="rounded-lg sm:rounded-xl canvas-shadow bg-[#07090e] cursor-crosshair touch-none w-full max-w-[540px] h-auto"></canvas>
         </div>
 
-        <div class="w-full mt-2 flex items-center justify-between text-xs bg-slate-950/90 border border-slate-800 rounded-xl px-3.5 py-2">
-          <span id="lblHoverTarget" class="text-slate-300 font-medium truncate">カーソル位置 (左下起点):</span>
-          <span id="lblCursorCell" class="font-mono text-sky-300 font-bold shrink-0 ml-2">X: - , Y: -</span>
+        <div class="w-full mt-1 sm:mt-2 flex items-center justify-between text-[10px] sm:text-xs bg-slate-950/90 border border-slate-800 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1 sm:py-1.5">
+          <span id="lblHoverTarget" class="text-slate-300 font-medium truncate">カーソル位置:</span>
+          <span id="lblCursorCell" class="font-mono text-sky-300 font-bold shrink-0 ml-1">X: - , Y: -</span>
         </div>
       </div>
 
       <!-- RIGHT VERTICAL TOOLBAR: Color (2x2), Grid (+/-), Curve Settings -->
-      <div class="lg:col-span-3 flex flex-col gap-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5">
+      <div class="flex flex-col gap-1.5 sm:gap-2.5 bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5">
 
         <!-- Color Selector (2x2 Rounded Squares, No names) -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 flex flex-col items-center">
-          <div class="w-full flex items-center justify-between mb-2.5">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">色選択</span>
-            <span class="text-[10px] text-slate-400">上:ガイド / 下:金</span>
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col items-center">
+          <div class="w-full flex items-center justify-between mb-1.5 sm:mb-2">
+            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">色選択</span>
+            <span class="hidden sm:inline text-[9px] text-slate-400">上:ガイド</span>
           </div>
-          <div class="grid grid-cols-2 gap-3.5 p-3 bg-slate-900/90 border border-slate-800 rounded-2xl w-full max-w-[180px] place-items-center" id="colorPaletteContainer">
+          <div class="grid grid-cols-2 gap-1.5 sm:gap-2.5 p-1.5 sm:p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl w-full max-w-[136px] place-items-center" id="colorPaletteContainer">
             <!-- Green (Guide: Gradient) -->
-            <button data-color="green" class="color-swatch active w-14 h-14 rounded-2xl border-2 border-emerald-400/70 transition" style="color: #00e676; background: linear-gradient(0deg, #00e676 0%, rgba(0,230,118,0.14) 100%);" title="ガイド (#00E676)"></button>
+            <button data-color="green" class="color-swatch active w-6 h-6 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl border-2 border-emerald-400/70 transition" style="color: #00e676; background: linear-gradient(0deg, #00e676 0%, rgba(0,230,118,0.14) 100%);" title="ガイド (#00E676)"></button>
             <!-- YellowGreen (Slide: #52FFBD) -->
-            <button data-color="yellowgreen" class="color-swatch w-14 h-14 rounded-2xl border-2 border-teal-300/70 transition" style="color: #52FFBD; background: #52FFBD;" title="スライド (#52FFBD)"></button>
+            <button data-color="yellowgreen" class="color-swatch w-6 h-6 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl border-2 border-teal-300/70 transition" style="color: #52FFBD; background: #52FFBD;" title="スライド (#52FFBD)"></button>
             <!-- Orange (Gold Guide: #FFCD42 Gradient) -->
-            <button data-color="orange" class="color-swatch w-14 h-14 rounded-2xl border-2 border-amber-300/70 transition" style="color: #FFCD42; background: linear-gradient(0deg, #FFCD42 0%, rgba(255,205,66,0.14) 100%);" title="金ガイド (#FFCD42)"></button>
+            <button data-color="orange" class="color-swatch w-6 h-6 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl border-2 border-amber-300/70 transition" style="color: #FFCD42; background: linear-gradient(0deg, #FFCD42 0%, rgba(255,205,66,0.14) 100%);" title="金ガイド (#FFCD42)"></button>
             <!-- Yellow (Gold Slide: #FEF7A9) -->
-            <button data-color="yellow" class="color-swatch w-14 h-14 rounded-2xl border-2 border-yellow-200/70 transition" style="color: #FEF7A9; background: #FEF7A9;" title="金スライド (#FEF7A9)"></button>
+            <button data-color="yellow" class="color-swatch w-6 h-6 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl border-2 border-yellow-200/70 transition" style="color: #FEF7A9; background: #FEF7A9;" title="金スライド (#FEF7A9)"></button>
           </div>
         </div>
 
         <!-- Grid Setting (+/- buttons for 4,8,16,32,64,128,192,1920) -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 flex flex-col gap-2">
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col gap-1 sm:gap-1.5">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">グリッド分割 (12×N)</span>
-            <span class="text-[11px] text-sky-400 font-mono font-semibold">縦分割</span>
+            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">グリッド</span>
+            <span class="hidden sm:inline text-[10px] text-sky-400 font-mono font-semibold">12×N</span>
           </div>
-          <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 rounded-xl p-2.5">
-            <button id="btnGridMinus" class="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-lg font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を減らす">
+          <div class="flex items-center justify-between gap-0.5 sm:gap-1.5 bg-slate-900/90 border border-slate-800 rounded-lg sm:rounded-xl p-1 sm:p-2">
+            <button id="btnGridMinus" class="w-5 h-6 sm:w-8 sm:h-8 rounded bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-xs sm:text-base font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35 shrink-0" title="分割数を減らす">
               －
             </button>
-            <div class="flex flex-col items-center">
-              <span id="lblCurrentGridRows" class="text-2xl font-extrabold font-mono text-sky-300 tracking-tight">16</span>
-              <span class="text-[10px] text-slate-400">マス / 縦</span>
+            <div class="flex flex-col items-center min-w-0">
+              <span id="lblCurrentGridRows" class="text-xs sm:text-lg md:text-xl font-extrabold font-mono text-sky-300 tracking-tight leading-none">16</span>
+              <span class="hidden sm:inline text-[9px] text-slate-400 mt-0.5">分</span>
             </div>
-            <button id="btnGridPlus" class="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-lg font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を増やす">
+            <button id="btnGridPlus" class="w-5 h-6 sm:w-8 sm:h-8 rounded bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-xs sm:text-base font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35 shrink-0" title="分割数を増やす">
               ＋
             </button>
           </div>
-          <div class="text-[10px] font-mono text-slate-400 text-center">
-            4 / 8 / 16 / 32 / 64 / 128 / 192 / 1920
+          <div class="hidden sm:block text-[9px] font-mono text-slate-400 text-center leading-tight">
+            4/8/16/32/64/128/192/1920
           </div>
         </div>
 
         <!-- Curve Settings -->
-        <div id="curveControlBox" class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 flex flex-col gap-2.5 flex-1 justify-between">
+        <div id="curveControlBox" class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col gap-1.5 sm:gap-2 flex-1 justify-between">
           <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">カーブ設定</span>
-              <span id="lblCurveModeName" class="text-xs font-mono text-fuchsia-300 font-bold">直線 ｜ ｜</span>
+            <div class="flex items-center justify-between mb-1 sm:mb-1.5">
+              <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">カーブ</span>
+              <span id="lblCurveModeName" class="hidden md:inline text-[10px] font-mono text-fuchsia-300 font-bold">直線 ｜｜</span>
             </div>
-            <div class="flex flex-col gap-2" id="curveTypeButtons">
-              <button data-curve="straight" class="curve-btn active w-full px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-bold transition flex items-center justify-between">
-                <span>直線</span>
-                <span class="font-mono text-sm px-2 py-0.5 rounded bg-slate-900/70">｜ ｜</span>
+            <div class="flex flex-col gap-1 sm:gap-1.5" id="curveTypeButtons">
+              <button data-curve="straight" class="curve-btn active w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center sm:justify-between">
+                <span class="hidden sm:inline">直線</span>
+                <span class="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-slate-900/70">｜ ｜</span>
               </button>
-              <button data-curve="left" class="curve-btn w-full px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-bold transition flex items-center justify-between">
-                <span>カーブ（（</span>
-                <span class="font-mono text-sm px-2 py-0.5 rounded bg-slate-900/70">（ （</span>
+              <button data-curve="left" class="curve-btn w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center sm:justify-between">
+                <span class="hidden sm:inline">カーブ</span>
+                <span class="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-slate-900/70">（ （</span>
               </button>
-              <button data-curve="right" class="curve-btn w-full px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-bold transition flex items-center justify-between">
-                <span>カーブ））</span>
-                <span class="font-mono text-sm px-2 py-0.5 rounded bg-slate-900/70">） ）</span>
+              <button data-curve="right" class="curve-btn w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center sm:justify-between">
+                <span class="hidden sm:inline">カーブ</span>
+                <span class="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-slate-900/70">） ）</span>
               </button>
             </div>
           </div>
 
-          <div class="text-[11px] text-slate-400 bg-slate-900/70 border border-slate-800/80 rounded-lg p-2 leading-relaxed">
-            始点または中継点の<span class="text-sky-300 font-semibold">長方形枠</span>を選択して、その区間のカーブを切り替えられます。
+          <div class="hidden sm:block text-[10px] text-slate-400 bg-slate-900/70 border border-slate-800/80 rounded-lg p-1.5 leading-snug">
+            始点・中継の<span class="text-sky-300 font-semibold">枠</span>を選択して区間カーブを切替
           </div>
         </div>
 
@@ -1795,8 +1791,8 @@
         const isAddActive = state.relaySubMode === 'add';
         btnAdd.classList.toggle('active-add', isAddActive);
         btnAdd.innerHTML = isAddActive
-          ? '<span>● 中継点追加モード中 (ON)</span>'
-          : '<span>＋ 中継点追加モード</span>';
+          ? '<span>● 追加中(ON)</span>'
+          : '<span>＋中継追加</span>';
       }
 
       document.getElementById('btnSnapGrid').classList.toggle('active', !state.fine1920Snap);
