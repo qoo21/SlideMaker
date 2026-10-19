@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>スライド造形ツール (12×N Grid & Perspective Preview)</title>
+  <title>ドット＆遠近法お絵描きツール (12×N Grid & Perspective Preview)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -64,13 +64,12 @@
       background: linear-gradient(135deg, #c026d3 0%, #9333ea 100%);
       border-color: #f0abfc;
       color: #ffffff;
-      box-shadow: 0 0 12px rgba(217, 70, 239, 0.45);
+      box-shadow: 0 0 14px rgba(217, 70, 239, 0.5);
     }
-    .relay-mode-btn.active-del {
-      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-      border-color: #fda4af;
+    .snap-btn.active {
+      background: #0284c7;
+      border-color: #7dd3fc;
       color: #ffffff;
-      box-shadow: 0 0 12px rgba(244, 63, 94, 0.45);
     }
   </style>
 </head>
@@ -88,7 +87,7 @@
         </div>
         <div>
           <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            スライド造形ツール
+            ドット＆遠近法お絵描きツール
             <span id="headerGridBadge" class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">12×16 パレット</span>
             <span id="autoSaveBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">自動保存: ブラウザ内</span>
           </h1>
@@ -107,9 +106,6 @@
           📂 読込
         </button>
         <input type="file" id="fileImportInput" accept=".json" class="hidden" />
-        <button id="btnUndo" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition disabled:opacity-40" title="元に戻す (Ctrl+Z)">
-          ↩ 戻す
-        </button>
         <button id="btnClearAll" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-200 border border-rose-800/60 transition">
           🗑 全消去
         </button>
@@ -121,284 +117,341 @@
   </header>
 
   <!-- Main Workspace -->
-  <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 flex flex-col gap-4">
+  <main class="flex-1 max-w-[1680px] w-full mx-auto p-3 sm:p-4 flex flex-col gap-4">
 
-    <!-- TOP SECTION: Enlarged Perspective Preview -->
-    <section class="w-full flex flex-col bg-slate-900/75 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-        <div>
+    <!-- 1. TOP SECTION: Enlarged Perspective Preview -->
+    <section class="w-full flex flex-col bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <div class="flex items-center gap-3">
           <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-            <span>プレビュー</span>
+            <span>📐 遠近法プレビュー (16:9)</span>
           </h2>
+          <span id="statusToast" class="text-xs text-sky-400 font-medium bg-slate-950/80 border border-slate-800 px-3 py-1 rounded-full">パレット上で作成・編集</span>
         </div>
 
         <div class="flex items-center gap-2 text-xs flex-wrap">
-          <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700 cursor-pointer">
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700 cursor-pointer hover:bg-slate-700/70 transition">
             <input type="checkbox" id="chkShowMainLines" checked class="w-3.5 h-3.5 rounded accent-sky-400" />
             <span>白枠・レーン線</span>
           </label>
-          <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700 cursor-pointer">
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700 cursor-pointer hover:bg-slate-700/70 transition">
             <input type="checkbox" id="chkShowSubGrid" class="w-3.5 h-3.5 rounded accent-sky-400" />
             <span>細分割グリッド線</span>
           </label>
         </div>
       </div>
 
-      <div class="w-full max-w-[1080px] mx-auto relative rounded-xl overflow-hidden canvas-shadow bg-black flex items-center justify-center">
+      <div class="w-full max-w-[1060px] mx-auto relative rounded-xl overflow-hidden canvas-shadow bg-black flex items-center justify-center">
         <canvas id="previewCanvas" width="1120" height="630" class="w-full h-auto block"></canvas>
       </div>
     </section>
 
-    <!-- BOTTOM SECTION: Left = Tools Tab, Right = Palette -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+    <!-- 2. MIDDLE SECTION: Left Vertical Controls | Center Palette | Right Vertical Controls -->
+    <section class="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
 
-      <!-- LEFT COLUMN: Tools & Controls -->
-      <section class="lg:col-span-5 flex flex-col gap-3 bg-slate-900/75 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
-        
-        <!-- 1. Tool Selector & Copy/Paste -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">1. ツール ＆ コピー操作</span>
-            <span id="statusToast" class="text-[11px] text-sky-400 font-medium truncate max-w-[200px]">パレット上で作成・編集</span>
+      <!-- LEFT VERTICAL TOOLBAR: Undo/Redo, Tools, Relay Point, Copy/Paste/Delete -->
+      <div class="lg:col-span-3 flex flex-col gap-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5">
+
+        <!-- History: Undo / Redo -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">履歴操作</span>
+            <span class="text-[11px] font-mono text-slate-400">Ctrl+Z / Ctrl+Y</span>
           </div>
-          <div class="grid grid-cols-2 gap-1.5 mb-1.5">
-            <button data-mode="draw" class="tool-btn active px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-800/90 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnUndo" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex items-center justify-center gap-1.5" title="元に戻す (Ctrl+Z)">
+              <span class="text-sm">↩</span>
+              <span>戻る</span>
+            </button>
+            <button id="btnRedo" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex items-center justify-center gap-1.5" title="やり直す (Ctrl+Y)">
+              <span>進む</span>
+              <span class="text-sm">↪</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode Selector: Draw/Edit vs Eraser (also deletes Relay Points) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">ツール選択</span>
+            <span class="text-[10px] text-slate-400">※消しゴムで中継点も削除可</span>
+          </div>
+          <div class="flex flex-col gap-2">
+            <button data-mode="draw" class="tool-btn active w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-800/90 text-xs font-bold flex items-center justify-center gap-2 transition">
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
               <span>描画・編集</span>
             </button>
-            <button data-mode="eraser" class="tool-btn px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-800/90 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+            <button data-mode="eraser" class="tool-btn w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-800/90 text-xs font-bold flex items-center justify-center gap-2 transition">
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              <span>消しゴム</span>
-            </button>
-          </div>
-
-          <div class="grid grid-cols-3 gap-1.5">
-            <button id="btnCopyShape" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition disabled:opacity-40 flex items-center justify-center gap-1" title="選択図形をコピー (Ctrl+C)">
-              <span>📋 コピー</span>
-            </button>
-            <button id="btnPasteShape" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition disabled:opacity-40 flex items-center justify-center gap-1" title="コピーした図形を貼り付け (Ctrl+V)">
-              <span>📥 ペースト</span>
-            </button>
-            <button id="btnDeleteShape" class="px-2 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/70 border border-rose-800/50 text-xs font-medium text-rose-200 transition disabled:opacity-40 flex items-center justify-center gap-1" title="選択図形を削除 (Delete)">
-              <span>✕ 削除</span>
+              <span>消しゴム (図形・中継点削除)</span>
             </button>
           </div>
         </div>
 
-        <!-- 2. Color Selector (2x2 Rounded Squares), Relay Point Add/Delete, & Grid Setting (+/-) -->
-        <div class="pt-2.5 border-t border-slate-800/80 grid grid-cols-12 gap-2.5 items-stretch">
-          <!-- Left: 2x2 Color Swatches (No names) -->
-          <div class="col-span-4 flex flex-col items-center justify-between">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 self-start mb-1">2. 色選択</span>
-            <div class="grid grid-cols-2 gap-2 p-2 bg-slate-950/70 border border-slate-800/90 rounded-2xl w-full flex-1 place-items-center" id="colorPaletteContainer">
-              <!-- Green (Guide: Gradient) -->
-              <button data-color="green" class="color-swatch active w-10 h-10 rounded-2xl border border-emerald-400/60 transition" style="color: #00e676; background: linear-gradient(0deg, #00e676 0%, rgba(0,230,118,0.12) 100%);" title="ガイド (#00E676)"></button>
-              <!-- YellowGreen (Slide: #52FFBD) -->
-              <button data-color="yellowgreen" class="color-swatch w-10 h-10 rounded-2xl border border-teal-300/60 transition" style="color: #52FFBD; background: #52FFBD;" title="スライド (#52FFBD)"></button>
-              <!-- Orange (Gold Guide: #FFCD42 Gradient) -->
-              <button data-color="orange" class="color-swatch w-10 h-10 rounded-2xl border border-amber-300/60 transition" style="color: #FFCD42; background: linear-gradient(0deg, #FFCD42 0%, rgba(255,205,66,0.12) 100%);" title="金ガイド (#FFCD42)"></button>
-              <!-- Yellow (Gold Slide: #FEF7A9) -->
-              <button data-color="yellow" class="color-swatch w-10 h-10 rounded-2xl border border-yellow-200/60 transition" style="color: #FEF7A9; background: #FEF7A9;" title="金スライド (#FEF7A9)"></button>
-            </div>
-          </div>
-
-          <!-- Center: Relay Point (Waypoint) Add / Remove Mode Toggle Controls -->
-          <div class="col-span-4 flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">中継点</span>
-              <span id="lblSelectedNodeInfo" class="text-[10px] font-mono text-amber-300 font-semibold truncate max-w-[95px]">未選択</span>
-            </div>
-            <div class="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-2 flex flex-col justify-center gap-1.5 flex-1">
-              <button id="btnAddRelayPoint" class="relay-mode-btn w-full py-2 rounded-xl bg-fuchsia-600/20 hover:bg-fuchsia-600/35 border border-fuchsia-500/40 text-fuchsia-200 text-xs font-semibold transition disabled:opacity-40 flex items-center justify-center gap-1" title="ONにして選択中の図形をクリックすると中継点を配置します">
-                <span>＋ 中継点追加</span>
-              </button>
-              <button id="btnDeleteRelayPoint" class="relay-mode-btn w-full py-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 border border-slate-700 text-slate-300 hover:text-rose-200 text-xs font-medium transition disabled:opacity-40 flex items-center justify-center gap-1" title="ONにして選択図形の中継点をクリックすると削除します">
-                <span>－ 中継点削除</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Right: Grid Setting (+/- buttons for 4,8,16,32,64,128,192,1920) -->
-          <div class="col-span-4 flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">3. グリッド</span>
-              <span class="text-[10px] text-slate-500 font-mono">12×N</span>
-            </div>
-            <div class="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-2 flex flex-col items-center justify-center gap-1.5 flex-1">
-              <div class="flex items-center justify-between w-full gap-1">
-                <button id="btnGridMinus" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-base font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を減らす">
-                  －
-                </button>
-                <div class="flex flex-col items-center">
-                  <span id="lblCurrentGridRows" class="text-lg font-bold font-mono text-sky-300 tracking-tight">16</span>
-                  <span class="text-[9px] text-slate-400">縦分割</span>
-                </div>
-                <button id="btnGridPlus" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-base font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を増やす">
-                  ＋
-                </button>
-              </div>
-              <div class="text-[9px] font-mono text-slate-500 tracking-tighter text-center leading-tight">
-                4/8/16/32/64/128/192/1920
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3.5 Opacity Settings (Slide & Guide) -->
-        <div class="pt-2.5 border-t border-slate-800/80 space-y-2">
+        <!-- Relay Point Addition & Snap Mode -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3 flex flex-col gap-2.5">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">透明度設定</span>
-            <span class="text-[10px] text-slate-400">※ガイドのみ上へ向かって透明化</span>
-          </div>
-          <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-2.5 space-y-2">
-            <!-- Slide Opacity (#52FFBD, #FEF7A9) -->
-            <div class="flex items-center gap-2 text-xs">
-              <span class="w-28 text-slate-300 font-medium flex items-center gap-1.5 shrink-0">
-                <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#52FFBD;"></span>
-                <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#FEF7A9;"></span>
-                <span>スライド</span>
-              </span>
-              <input type="range" id="rngSlideOpacity" min="5" max="100" value="85" class="flex-1 h-1.5 bg-slate-800 rounded-lg cursor-pointer" />
-              <span id="lblSlideOpacity" class="w-10 text-right font-mono text-[11px] text-sky-300">85%</span>
-            </div>
-            <!-- Guide Opacity (#00E676, #FFCD42) -->
-            <div class="flex items-center gap-2 text-xs">
-              <span class="w-28 text-slate-300 font-medium flex items-center gap-1.5 shrink-0">
-                <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#00e676;"></span>
-                <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#FFCD42;"></span>
-                <span>ガイド</span>
-              </span>
-              <input type="range" id="rngGuideOpacity" min="5" max="100" value="85" class="flex-1 h-1.5 bg-slate-800 rounded-lg cursor-pointer" />
-              <span id="lblGuideOpacity" class="w-10 text-right font-mono text-[11px] text-emerald-300">85%</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 4. Curve Setting -->
-        <div id="curveControlBox" class="pt-2.5 border-t border-slate-800/80 space-y-2 transition">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">4. カーブ設定</span>
-            <span id="lblCurveModeName" class="text-[11px] font-mono text-fuchsia-300 font-semibold">直線 ｜ ｜</span>
-          </div>
-          <div class="grid grid-cols-3 gap-1.5" id="curveTypeButtons">
-            <button data-curve="straight" class="curve-btn active px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-semibold transition flex flex-col items-center gap-0.5">
-              <span class="font-mono text-sm">｜ ｜</span>
-              <span class="text-[11px]">直線</span>
-            </button>
-            <button data-curve="left" class="curve-btn px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-semibold transition flex flex-col items-center gap-0.5">
-              <span class="font-mono text-sm">（ （</span>
-              <span class="text-[11px]">カーブ（（</span>
-            </button>
-            <button data-curve="right" class="curve-btn px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-semibold transition flex flex-col items-center gap-0.5">
-              <span class="font-mono text-sm">） ）</span>
-              <span class="text-[11px]">カーブ））</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 5. Layer Panel (Collapsible) -->
-        <div class="pt-2.5 border-t border-slate-800/80 flex flex-col">
-          <div class="flex items-center justify-between">
-            <button type="button" data-collapse-target="layerPanelBody" data-collapse-arrow="layerPanelArrow" class="flex items-center gap-1.5 text-left py-0.5 hover:opacity-80 transition">
-              <span id="layerPanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">5. レイヤー管理</span>
-              <span id="lblLayerCount" class="text-[11px] text-sky-400 font-mono">(0)</span>
-            </button>
-            <div class="flex items-center gap-1">
-              <button id="btnLayerUp" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-200 disabled:opacity-40" title="選択レイヤーを前面(上)へ">▲ 上へ</button>
-              <button id="btnLayerDown" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-200 disabled:opacity-40" title="選択レイヤーを背面(下)へ">▼ 下へ</button>
-            </div>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">中継点</span>
+            <span id="lblSelectedNodeInfo" class="text-[11px] font-mono text-amber-300 font-semibold truncate max-w-[140px]">未選択</span>
           </div>
 
-          <div id="layerPanelBody" class="flex flex-col gap-2 mt-2">
-            <!-- Multi-select & Lock Selected Layer Movement -->
-            <div class="flex items-center justify-between gap-1 text-[11px] bg-slate-950/70 border border-slate-800/80 rounded-lg px-2 py-1.5">
-              <label class="flex items-center gap-1.5 text-slate-200 cursor-pointer select-none" title="ONにするとパレット上で選択中のレイヤーのみ移動・変形でき、他の図形が誤って動くのを防ぎます">
-                <input type="checkbox" id="chkOnlyMoveSelected" class="w-3.5 h-3.5 rounded accent-sky-400" />
-                <span class="font-medium text-sky-300">指定レイヤーのみ移動・編集</span>
-              </label>
-              <div class="flex items-center gap-1 shrink-0">
-                <button id="btnSelectAllLayers" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300">全選択</button>
-                <button id="btnDeselectAllLayers" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-400">解除</button>
-              </div>
-            </div>
-
-            <!-- Layer List -->
-            <div id="layerListContainer" class="max-h-44 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-1.5"></div>
-          </div>
-        </div>
-
-        <!-- 6. Shape Template Save & List (Collapsible) -->
-        <div class="pt-2.5 border-t border-slate-800/80 flex flex-col">
-          <button type="button" data-collapse-target="templatePanelBody" data-collapse-arrow="templatePanelArrow" class="flex items-center justify-between w-full text-left py-0.5 hover:opacity-80 transition">
-            <div class="flex items-center gap-1.5">
-              <span id="templatePanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">6. 図形テンプレート保存</span>
-            </div>
-            <span id="lblTemplateCount" class="text-[11px] text-slate-400">0件</span>
+          <button id="btnAddRelayPoint" class="relay-mode-btn w-full py-2.5 px-3 rounded-xl bg-fuchsia-600/20 hover:bg-fuchsia-600/35 border border-fuchsia-500/40 text-fuchsia-200 text-xs font-bold transition flex items-center justify-center gap-1.5" title="未選択でもONにでき、図形をクリックして選択→クリックで中継点を追加します">
+            <span>＋ 中継点追加モード</span>
           </button>
 
-          <div id="templatePanelBody" class="flex flex-col gap-2 mt-2">
-            <div class="flex gap-1.5">
-              <input type="text" id="inpTemplateName" placeholder="テンプレート名" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
-              <button id="btnSaveTemplate" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shrink-0 disabled:opacity-40">
-                ＋ 保存
+          <div class="pt-1 border-t border-slate-800/80">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] text-slate-400 font-medium">中継点の配置・移動間隔</span>
+              <span class="text-[10px] text-slate-500">※接近時は自動で1920</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5">
+              <button id="btnSnapGrid" class="snap-btn active py-1.5 px-2 rounded-lg bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-200 transition">
+                グリッド間隔
+              </button>
+              <button id="btnSnap1920" class="snap-btn py-1.5 px-2 rounded-lg bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-200 transition">
+                1920分割 (自由)
               </button>
             </div>
-            <div id="templateListContainer" class="max-h-32 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2"></div>
           </div>
         </div>
 
-        <!-- 7. Full Palette Save & List (Collapsible) -->
-        <div class="pt-2.5 border-t border-slate-800/80 flex flex-col">
-          <button type="button" data-collapse-target="paletteSavePanelBody" data-collapse-arrow="paletteSavePanelArrow" class="flex items-center justify-between w-full text-left py-0.5 hover:opacity-80 transition">
-            <div class="flex items-center gap-1.5">
-              <span id="paletteSavePanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">7. パレット全体保存</span>
-            </div>
-            <span id="lblSavedPaletteCount" class="text-[11px] text-emerald-400">0件</span>
-          </button>
-
-          <div id="paletteSavePanelBody" class="flex flex-col gap-2 mt-2">
-            <div class="flex gap-1.5">
-              <input type="text" id="inpPaletteSaveName" placeholder="パレット全体の名前" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
-              <button id="btnSaveFullPalette" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shrink-0">
-                ＋ 全体保存
+        <!-- Copy / Paste / Delete Actions -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3 mt-auto">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">コピー・削除操作</span>
+            <span class="text-[10px] font-mono text-slate-400">Ctrl+C / V</span>
+          </div>
+          <div class="flex flex-col gap-2">
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btnCopyShape" class="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="選択図形をコピー (Ctrl+C)">
+                <span>📋 コピー</span>
+              </button>
+              <button id="btnPasteShape" class="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="コピーした図形を貼り付け (Ctrl+V)">
+                <span>📥 ペースト</span>
               </button>
             </div>
-            <div id="savedPaletteListContainer" class="max-h-36 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2"></div>
+            <button id="btnDeleteShape" class="w-full py-2 px-3 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-xs font-semibold text-rose-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="選択中の図形を削除 (Delete)">
+              <span>✕ 選択図形を削除</span>
+            </button>
           </div>
         </div>
 
-      </section>
+      </div>
 
-      <!-- RIGHT COLUMN: Enlarged 12×N Grid Palette Editor -->
-      <section class="lg:col-span-7 flex flex-col items-center bg-slate-900/75 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
-        <div class="w-full flex items-center justify-between mb-2">
+      <!-- CENTER COLUMN: 12×N Grid Palette Editor -->
+      <div class="lg:col-span-6 flex flex-col items-center justify-between bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 sm:p-4">
+        <div class="w-full flex flex-wrap items-center justify-between gap-2 mb-2">
           <div>
-            <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
-              <span>パレット (<span id="lblPaletteTitleDims">12×16</span>)</span>
-              <span id="lblLastWidthBadge" class="text-[11px] font-mono font-normal px-2 py-0.5 rounded-md bg-slate-800 text-sky-300 border border-slate-700">新規幅: 2マス</span>
+            <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              <span>🎨 パレット (<span id="lblPaletteTitleDims">12×16</span>)</span>
+              <span id="lblLastWidthBadge" class="text-xs font-mono font-semibold px-2.5 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30">新規幅: 2マス</span>
             </h2>
-            <p class="text-[11px] text-slate-400">●ドラッグで移動</p>
+            <p class="text-[11px] text-slate-300 mt-0.5">
+              始点・中継・終点をクリックすると<span class="text-sky-300 font-semibold">長方形の枠</span>が表示：左右の<span class="text-amber-300 font-semibold">縦辺ドラッグで幅調整</span>、枠内の<span class="text-emerald-300 font-semibold">内側ドラッグで移動</span>
+            </p>
           </div>
         </div>
 
         <div class="relative flex items-center justify-center my-1 w-full">
-          <canvas id="paletteCanvas" width="600" height="760" class="rounded-xl canvas-shadow bg-[#07090e] cursor-crosshair touch-none max-w-full h-auto"></canvas>
+          <canvas id="paletteCanvas" width="620" height="760" class="rounded-xl canvas-shadow bg-[#07090e] cursor-crosshair touch-none max-w-full h-auto"></canvas>
         </div>
 
-        <div class="w-full mt-2 flex items-center justify-between text-xs bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5">
-          <span id="lblHoverTarget" class="text-slate-400 truncate">カーソル位置 (左下起点):</span>
-          <span id="lblCursorCell" class="font-mono text-sky-300 font-semibold shrink-0">X: - , Y: -</span>
+        <div class="w-full mt-2 flex items-center justify-between text-xs bg-slate-950/90 border border-slate-800 rounded-xl px-3.5 py-2">
+          <span id="lblHoverTarget" class="text-slate-300 font-medium truncate">カーソル位置 (左下起点):</span>
+          <span id="lblCursorCell" class="font-mono text-sky-300 font-bold shrink-0 ml-2">X: - , Y: -</span>
         </div>
-      </section>
+      </div>
 
-    </div>
+      <!-- RIGHT VERTICAL TOOLBAR: Color (2x2), Grid (+/-), Curve Settings -->
+      <div class="lg:col-span-3 flex flex-col gap-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5">
+
+        <!-- Color Selector (2x2 Rounded Squares, No names) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 flex flex-col items-center">
+          <div class="w-full flex items-center justify-between mb-2.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">色選択</span>
+            <span class="text-[10px] text-slate-400">上:ガイド / 下:金</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3.5 p-3 bg-slate-900/90 border border-slate-800 rounded-2xl w-full max-w-[180px] place-items-center" id="colorPaletteContainer">
+            <!-- Green (Guide: Gradient) -->
+            <button data-color="green" class="color-swatch active w-14 h-14 rounded-2xl border-2 border-emerald-400/70 transition" style="color: #00e676; background: linear-gradient(0deg, #00e676 0%, rgba(0,230,118,0.14) 100%);" title="ガイド (#00E676)"></button>
+            <!-- YellowGreen (Slide: #52FFBD) -->
+            <button data-color="yellowgreen" class="color-swatch w-14 h-14 rounded-2xl border-2 border-teal-300/70 transition" style="color: #52FFBD; background: #52FFBD;" title="スライド (#52FFBD)"></button>
+            <!-- Orange (Gold Guide: #FFCD42 Gradient) -->
+            <button data-color="orange" class="color-swatch w-14 h-14 rounded-2xl border-2 border-amber-300/70 transition" style="color: #FFCD42; background: linear-gradient(0deg, #FFCD42 0%, rgba(255,205,66,0.14) 100%);" title="金ガイド (#FFCD42)"></button>
+            <!-- Yellow (Gold Slide: #FEF7A9) -->
+            <button data-color="yellow" class="color-swatch w-14 h-14 rounded-2xl border-2 border-yellow-200/70 transition" style="color: #FEF7A9; background: #FEF7A9;" title="金スライド (#FEF7A9)"></button>
+          </div>
+        </div>
+
+        <!-- Grid Setting (+/- buttons for 4,8,16,32,64,128,192,1920) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">グリッド分割 (12×N)</span>
+            <span class="text-[11px] text-sky-400 font-mono font-semibold">縦分割</span>
+          </div>
+          <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 rounded-xl p-2.5">
+            <button id="btnGridMinus" class="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-lg font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を減らす">
+              －
+            </button>
+            <div class="flex flex-col items-center">
+              <span id="lblCurrentGridRows" class="text-2xl font-extrabold font-mono text-sky-300 tracking-tight">16</span>
+              <span class="text-[10px] text-slate-400">マス / 縦</span>
+            </div>
+            <button id="btnGridPlus" class="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-lg font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を増やす">
+              ＋
+            </button>
+          </div>
+          <div class="text-[10px] font-mono text-slate-400 text-center">
+            4 / 8 / 16 / 32 / 64 / 128 / 192 / 1920
+          </div>
+        </div>
+
+        <!-- Curve Settings -->
+        <div id="curveControlBox" class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3.5 flex flex-col gap-2.5 flex-1 justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">カーブ設定</span>
+              <span id="lblCurveModeName" class="text-xs font-mono text-fuchsia-300 font-bold">直線 ｜ ｜</span>
+            </div>
+            <div class="flex flex-col gap-2" id="curveTypeButtons">
+              <button data-curve="straight" class="curve-btn active w-full px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-bold transition flex items-center justify-between">
+                <span>直線</span>
+                <span class="font-mono text-sm px-2 py-0.5 rounded bg-slate-900/70">｜ ｜</span>
+              </button>
+              <button data-curve="left" class="curve-btn w-full px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-bold transition flex items-center justify-between">
+                <span>カーブ（（</span>
+                <span class="font-mono text-sm px-2 py-0.5 rounded bg-slate-900/70">（ （</span>
+              </button>
+              <button data-curve="right" class="curve-btn w-full px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-bold transition flex items-center justify-between">
+                <span>カーブ））</span>
+                <span class="font-mono text-sm px-2 py-0.5 rounded bg-slate-900/70">） ）</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-slate-400 bg-slate-900/70 border border-slate-800/80 rounded-lg p-2 leading-relaxed">
+            始点または中継点の<span class="text-sky-300 font-semibold">長方形枠</span>を選択して、その区間のカーブを切り替えられます。
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- 3. BOTTOM SECTION: Other Settings (Opacity, Layer Management, Templates, Full Palette Save) -->
+    <section class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+
+      <!-- Panel A: Opacity Settings -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex flex-col gap-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300">透明度設定</span>
+          <span class="text-[10px] text-slate-400">※ガイドは上へ透明化</span>
+        </div>
+        <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 space-y-3">
+          <!-- Slide Opacity (#52FFBD, #FEF7A9) -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-200 font-medium flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-sm inline-block" style="background:#52FFBD;"></span>
+                <span class="w-3 h-3 rounded-sm inline-block" style="background:#FEF7A9;"></span>
+                <span>スライド透明度</span>
+              </span>
+              <span id="lblSlideOpacity" class="font-mono text-xs text-sky-300 font-bold">85%</span>
+            </div>
+            <input type="range" id="rngSlideOpacity" min="5" max="100" value="85" class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer" />
+          </div>
+          <!-- Guide Opacity (#00E676, #FFCD42) -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-200 font-medium flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-sm inline-block" style="background:#00e676;"></span>
+                <span class="w-3 h-3 rounded-sm inline-block" style="background:#FFCD42;"></span>
+                <span>ガイド透明度</span>
+              </span>
+              <span id="lblGuideOpacity" class="font-mono text-xs text-emerald-300 font-bold">85%</span>
+            </div>
+            <input type="range" id="rngGuideOpacity" min="5" max="100" value="85" class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel B: Layer Panel (Collapsible) -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex flex-col">
+        <div class="flex items-center justify-between">
+          <button type="button" data-collapse-target="layerPanelBody" data-collapse-arrow="layerPanelArrow" class="flex items-center gap-1.5 text-left py-0.5 hover:opacity-80 transition">
+            <span id="layerPanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-200">レイヤー管理</span>
+            <span id="lblLayerCount" class="text-xs text-sky-400 font-mono font-bold">(0)</span>
+          </button>
+          <div class="flex items-center gap-1">
+            <button id="btnLayerUp" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-200 disabled:opacity-40" title="選択レイヤーを前面(上)へ">▲ 上へ</button>
+            <button id="btnLayerDown" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-200 disabled:opacity-40" title="選択レイヤーを背面(下)へ">▼ 下へ</button>
+          </div>
+        </div>
+
+        <div id="layerPanelBody" class="flex flex-col gap-2 mt-2.5">
+          <div class="flex items-center justify-between gap-1 text-[11px] bg-slate-950/70 border border-slate-800/80 rounded-lg px-2.5 py-1.5">
+            <label class="flex items-center gap-1.5 text-slate-200 cursor-pointer select-none" title="ONにするとパレット上で選択中のレイヤーのみ移動・変形でき、他の図形が誤って動くのを防ぎます">
+              <input type="checkbox" id="chkOnlyMoveSelected" class="w-3.5 h-3.5 rounded accent-sky-400" />
+              <span class="font-medium text-sky-300">選択レイヤーのみ編集</span>
+            </label>
+            <div class="flex items-center gap-1 shrink-0">
+              <button id="btnSelectAllLayers" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300">全選択</button>
+              <button id="btnDeselectAllLayers" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-400">解除</button>
+            </div>
+          </div>
+
+          <div id="layerListContainer" class="max-h-44 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-1.5"></div>
+        </div>
+      </div>
+
+      <!-- Panel C: Shape Template Save & List (Collapsible) -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex flex-col">
+        <button type="button" data-collapse-target="templatePanelBody" data-collapse-arrow="templatePanelArrow" class="flex items-center justify-between w-full text-left py-0.5 hover:opacity-80 transition">
+          <div class="flex items-center gap-1.5">
+            <span id="templatePanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-200">図形テンプレート保存</span>
+          </div>
+          <span id="lblTemplateCount" class="text-xs text-slate-400 font-mono">0件</span>
+        </button>
+
+        <div id="templatePanelBody" class="flex flex-col gap-2 mt-2.5">
+          <div class="flex gap-1.5">
+            <input type="text" id="inpTemplateName" placeholder="テンプレート名" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+            <button id="btnSaveTemplate" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition shrink-0 disabled:opacity-40">
+              ＋ 保存
+            </button>
+          </div>
+          <div id="templateListContainer" class="max-h-40 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2"></div>
+        </div>
+      </div>
+
+      <!-- Panel D: Full Palette Save & List (Collapsible) -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex flex-col">
+        <button type="button" data-collapse-target="paletteSavePanelBody" data-collapse-arrow="paletteSavePanelArrow" class="flex items-center justify-between w-full text-left py-0.5 hover:opacity-80 transition">
+          <div class="flex items-center gap-1.5">
+            <span id="paletteSavePanelArrow" class="text-[10px] text-slate-400 transition-transform duration-200">▼</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-200">パレット全体保存</span>
+          </div>
+          <span id="lblSavedPaletteCount" class="text-xs text-emerald-400 font-mono">0件</span>
+        </button>
+
+        <div id="paletteSavePanelBody" class="flex flex-col gap-2 mt-2.5">
+          <div class="flex gap-1.5">
+            <input type="text" id="inpPaletteSaveName" placeholder="パレット全体の名前" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+            <button id="btnSaveFullPalette" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shrink-0">
+              ＋ 全体保存
+            </button>
+          </div>
+          <div id="savedPaletteListContainer" class="max-h-40 overflow-y-auto space-y-1 pr-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2"></div>
+        </div>
+      </div>
+
+    </section>
 
   </main>
 
@@ -410,9 +463,11 @@
     const STORAGE_KEY_TEMPLATES = 'dot_persp_shape_templates_v3';
     const STORAGE_KEY_SAVED_PALETTES = 'dot_persp_saved_palettes_v1';
 
-    // Updated Colors:
-    // Guide: green (#00e676), Gold Guide: orange (#FFCD42) -> fade to transparent
-    // Slide: yellowgreen (#52FFBD), Gold Slide: yellow (#FEF7A9) -> solid opacity
+    // Half-height (in canvas pixels) of the rectangular frame for start/relay/end nodes
+    const NODE_BOX_HALF_H = 18;
+    // Horizontal hit tolerance around left/right vertical edges of the node rectangle for width adjustment
+    const NODE_EDGE_HIT_W = 14;
+
     const COLORS = {
       green: {
         id: 'green',
@@ -476,9 +531,6 @@
       ]
     };
 
-    // Calculate smooth continuous progression rate k from the interior vertical intervals
-    // (excluding the top-most interval [0..1] and bottom-most interval [8..9]) so that
-    // vertical spacing changes smoothly without piecewise-linear kinks at horizontal lines.
     const SMOOTH_PERSP_K = (() => {
       const stops = PERSP_GEOM.verticalStopsFromTop;
       const allDiffs = [];
@@ -496,9 +548,10 @@
 
     const state = {
       mode: 'draw',
-      relaySubMode: null, // null | 'add' | 'delete'
+      relaySubMode: null, // null | 'add'
+      fine1920Snap: false, // false = Grid interval (with auto-1920 near other nodes), true = 1920 fine anywhere
       gridRows: 16,
-      lastUsedWidth: 2,   // Remembered width when drawing new shapes
+      lastUsedWidth: 2,
       currentColor: 'green',
       currentCurveMode: 'straight',
       slideOpacity: 0.85,
@@ -508,24 +561,24 @@
       onlyMoveSelected: false,
       grid: Array.from({ length: 16 }, () => Array(GRID_COLS).fill(null)),
       shapes: [],
-      selectedShapeIds: [], // Supports multi-selection of layers
-      activeShapeId: null,  // Primary selected shape for handle/node editing
-      activeNodeIndex: 0,   // Selected node index (0 = start, 1..n-2 = relay, n-1 = end)
+      selectedShapeIds: [],
+      activeShapeId: null,
+      activeNodeIndex: 0,
       clipboardShapes: [],
       templates: [],
       savedPalettes: [],
       directoryHandle: null,
-      history: []
+      history: [],
+      redoStack: []
     };
 
-    // Hover state for previewing what will be selected, added, deleted, or drawn on the palette
     const hoverState = {
       inside: false,
       col: 0,
       row: 0,
       px: 0,
       py: 0,
-      type: null, // 'handleLeft' | 'handleRight' | 'handleCenter' | 'relayAdd' | 'relayDelete' | 'shape' | 'eraseShape' | 'newShapePreview'
+      type: null, // 'handleLeft' | 'handleRight' | 'handleCenter' | 'relayAdd' | 'relaySelectShape' | 'eraseRelay' | 'eraseShape' | 'shape' | 'newShapePreview'
       shapeId: null,
       nodeIndex: -1,
       segIndex: -1,
@@ -540,7 +593,7 @@
     const previewCanvas = document.getElementById('previewCanvas');
     const previewCtx = previewCanvas.getContext('2d');
 
-    const PALETTE_PAD = { left: 48, right: 22, top: 22, bottom: 36 };
+    const PALETTE_PAD = { left: 48, right: 24, top: 28, bottom: 38 };
     const PLOT_W = paletteCanvas.width - PALETTE_PAD.left - PALETTE_PAD.right;
     const PLOT_H = paletteCanvas.height - PALETTE_PAD.top - PALETTE_PAD.bottom;
     const CELL_W = PLOT_W / GRID_COLS;
@@ -549,18 +602,21 @@
       return PLOT_H / state.gridRows;
     }
 
-    // 1 unit of 1920 division expressed in current state.gridRows coordinates
     function getMinFineStepY(rows = state.gridRows) {
-      return rows / MAX_FINE_DIVISIONS;
+      const validRows = (typeof rows === 'number' && rows > 0) ? rows : state.gridRows;
+      return validRows / MAX_FINE_DIVISIONS;
     }
 
     function snapFine1920(val, min, max, rows = state.gridRows) {
-      const step = getMinFineStepY(rows);
-      const snapped = Math.round(val / step) * step;
+      const validRows = (typeof rows === 'number' && rows > 0) ? rows : state.gridRows;
+      const step = getMinFineStepY(validRows);
+      const safeVal = Number.isFinite(val) ? val : min;
+      const snapped = Math.round(safeVal / step) * step;
       return Math.max(min, Math.min(max, Number(snapped.toFixed(6))));
     }
 
     function formatYValue(y, rows = state.gridRows) {
+      if (!Number.isFinite(y)) return '0';
       if (Math.abs(y - Math.round(y)) < 1e-4) {
         return String(Math.round(y));
       }
@@ -582,37 +638,36 @@
       if (el) el.textContent = msg;
     }
 
-    // Ensure any shape object has a valid `nodes` array ordered from bottom to top
     function normalizeShape(raw, rows = state.gridRows) {
+      const validRows = (typeof rows === 'number' && rows > 0) ? rows : state.gridRows;
       const color = COLORS[raw.color] ? raw.color : 'green';
-      const fineStep = getMinFineStepY(rows);
+      const fineStep = getMinFineStepY(validRows);
       let nodes = [];
       if (Array.isArray(raw.nodes) && raw.nodes.length >= 2) {
         nodes = raw.nodes.map(n => ({
           left: snapInt(n.left ?? 0, 0, GRID_COLS - 1),
           right: snapInt(n.right ?? 1, 1, GRID_COLS),
-          y: snapFine1920(n.y ?? 0, 0, rows, rows),
+          y: snapFine1920(n.y ?? 0, 0, validRows, validRows),
           curveMode: ['straight', 'left', 'right'].includes(n.curveMode) ? n.curveMode : 'straight'
         }));
       } else {
         const sL = snapInt(raw.startLeft ?? 2, 0, GRID_COLS - 1);
         const sR = Math.max(sL + 1, snapInt(raw.startRight ?? sL + 2, 1, GRID_COLS));
-        const sY = snapFine1920(raw.startY ?? 0, 0, rows - fineStep, rows);
+        const sY = snapFine1920(raw.startY ?? 0, 0, validRows - fineStep, validRows);
         const eL = snapInt(raw.endLeft ?? sL, 0, GRID_COLS - 1);
         const eR = Math.max(eL + 1, snapInt(raw.endRight ?? sR, 1, GRID_COLS));
-        const eY = Math.max(sY + fineStep, snapFine1920(raw.endY ?? rows, fineStep, rows, rows));
+        const eY = Math.max(sY + fineStep, snapFine1920(raw.endY ?? validRows, fineStep, validRows, validRows));
         const cMode = ['straight', 'left', 'right'].includes(raw.curveMode) ? raw.curveMode : 'straight';
         nodes = [
           { left: sL, right: sR, y: sY, curveMode: cMode },
           { left: eL, right: eR, y: eY, curveMode: 'straight' }
         ];
       }
-      // Ensure left < right and strictly increasing Y (at least 1/1920 step apart)
       for (let i = 0; i < nodes.length; i++) {
         nodes[i].left = snapInt(nodes[i].left, 0, GRID_COLS - 1);
         nodes[i].right = Math.max(nodes[i].left + 1, snapInt(nodes[i].right, 1, GRID_COLS));
         if (i > 0 && nodes[i].y <= nodes[i - 1].y) {
-          nodes[i].y = snapFine1920(nodes[i - 1].y + fineStep, 0, rows, rows);
+          nodes[i].y = snapFine1920(nodes[i - 1].y + fineStep, 0, validRows, validRows);
         }
       }
       return {
@@ -623,12 +678,7 @@
       };
     }
 
-    /**
-     * Snap node Y to the current grid, EXCEPT when brought close to another node (prevY or nextY),
-     * where it seamlessly switches to 1920-division resolution so it can approach within 1/1920 step
-     * in front of or behind the neighboring node regardless of the current grid division.
-     */
-    function computeNodeSnappedY(rawRowFloat, minYLimit, maxYLimit, prevY, nextY) {
+    function computeNodeSnappedY(rawRowFloat, minYLimit, maxYLimit, prevY, nextY, forceFine1920 = false) {
       const rows = state.gridRows;
       const step1920 = getMinFineStepY(rows);
       const minAllowed = prevY !== null ? prevY + step1920 : minYLimit;
@@ -638,7 +688,10 @@
         return Number(minAllowed.toFixed(6));
       }
 
-      // Check proximity to previous or next node (within ~0.85 of a grid cell)
+      if (forceFine1920 || state.fine1920Snap) {
+        return snapFine1920(rawRowFloat, minAllowed, maxAllowed, rows);
+      }
+
       const nearThreshold = Math.max(step1920 * 4, 0.85);
       const distPrev = prevY !== null ? Math.abs(rawRowFloat - prevY) : Infinity;
       const distNext = nextY !== null ? Math.abs(rawRowFloat - nextY) : Infinity;
@@ -657,8 +710,8 @@
       return gridSnapped;
     }
 
-    function saveHistory() {
-      const snapshot = {
+    function createCurrentSnapshot() {
+      return {
         gridRows: state.gridRows,
         grid: state.grid.map(row => row.map(cell => (cell ? { ...cell } : null))),
         shapes: JSON.parse(JSON.stringify(state.shapes)),
@@ -666,29 +719,76 @@
         activeShapeId: state.activeShapeId,
         activeNodeIndex: state.activeNodeIndex
       };
-      state.history.push(snapshot);
-      if (state.history.length > 35) state.history.shift();
-      updateUndoButton();
     }
 
-    function undo() {
-      if (state.history.length === 0) return;
-      const last = state.history.pop();
-      state.gridRows = last.gridRows;
-      state.grid = last.grid;
-      state.shapes = last.shapes.map(normalizeShape);
-      state.selectedShapeIds = last.selectedShapeIds || [];
-      state.activeShapeId = last.activeShapeId;
-      state.activeNodeIndex = last.activeNodeIndex || 0;
-      updateUndoButton();
+    function pushSnapshotToHistory(snapshot) {
+      if (!snapshot) return;
+      state.history.push(snapshot);
+      if (state.history.length > 50) state.history.shift();
+      state.redoStack = [];
+      updateHistoryButtons();
+    }
+
+    function saveHistory() {
+      pushSnapshotToHistory(createCurrentSnapshot());
+    }
+
+    function applyHistorySnapshot(snap) {
+      if (!snap) return;
+      dragState.active = false;
+      dragState.type = null;
+      dragState.pendingSnapshot = null;
+
+      const targetRows = ALLOWED_ROW_DIVISIONS.includes(snap.gridRows) ? snap.gridRows : 16;
+      state.gridRows = targetRows;
+      state.grid = Array.isArray(snap.grid)
+        ? snap.grid.map(row => row.map(cell => (cell ? { ...cell } : null)))
+        : Array.from({ length: targetRows }, () => Array(GRID_COLS).fill(null));
+      state.shapes = Array.isArray(snap.shapes)
+        ? snap.shapes.map(s => normalizeShape(s, targetRows))
+        : [];
+
+      const validIds = new Set(state.shapes.map(s => s.id));
+      state.selectedShapeIds = (snap.selectedShapeIds || []).filter(id => validIds.has(id));
+      state.activeShapeId = validIds.has(snap.activeShapeId)
+        ? snap.activeShapeId
+        : (state.selectedShapeIds[state.selectedShapeIds.length - 1] || null);
+
+      const activeShape = getActiveShape();
+      state.activeNodeIndex = activeShape
+        ? Math.max(0, Math.min(activeShape.nodes.length - 1, snap.activeNodeIndex || 0))
+        : 0;
+
+      updateHistoryButtons();
       updateGridDivisionUI();
       syncUIWithSelectedShape();
       renderAll();
       triggerAutoSave();
     }
 
-    function updateUndoButton() {
-      document.getElementById('btnUndo').disabled = state.history.length === 0;
+    function undo() {
+      if (state.history.length === 0) return;
+      const currentSnap = createCurrentSnapshot();
+      const prevSnap = state.history.pop();
+      state.redoStack.push(currentSnap);
+      applyHistorySnapshot(prevSnap);
+      showToast('元に戻しました');
+    }
+
+    function redo() {
+      if (state.redoStack.length === 0) return;
+      const currentSnap = createCurrentSnapshot();
+      const nextSnap = state.redoStack.pop();
+      state.history.push(currentSnap);
+      applyHistorySnapshot(nextSnap);
+      showToast('やり直しました');
+    }
+
+    function updateHistoryButtons() {
+      const btnUndo = document.getElementById('btnUndo');
+      const btnRedo = document.getElementById('btnRedo');
+      if (btnUndo) btnUndo.disabled = state.history.length === 0;
+      if (btnRedo) btnRedo.disabled = state.redoStack.length === 0;
     }
 
     function getColorRgba(colorId, alpha = 1) {
@@ -717,12 +817,84 @@
     }
 
     function snapInt(val, min, max) {
-      return Math.max(min, Math.min(max, Math.round(val)));
+      const safe = Number.isFinite(val) ? val : min;
+      return Math.max(min, Math.min(max, Math.round(safe)));
+    }
+
+    // Returns the canvas pixel rectangle for a node (Start, Relay, or End)
+    function getNodeBoxPixelRect(node) {
+      const ptL = gridToPaletteXY(node.left, node.y);
+      const ptR = gridToPaletteXY(node.right, node.y);
+      const x1 = ptL.x;
+      const x2 = ptR.x;
+      const yCenter = ptL.y;
+      return {
+        x1,
+        x2,
+        yCenter,
+        y1: yCenter - NODE_BOX_HALF_H,
+        y2: yCenter + NODE_BOX_HALF_H,
+        width: x2 - x1,
+        height: NODE_BOX_HALF_H * 2
+      };
+    }
+
+    /**
+     * Hit-tests a node's rectangular frame at canvas coordinates (px, py).
+     * Returns:
+     *  - 'left'   : on the left vertical edge (width adjustment)
+     *  - 'right'  : on the right vertical edge (width adjustment)
+     *  - 'center' : anywhere else inside the rectangle (move node)
+     *  - null     : outside the node's hit area
+     */
+    function hitTestNodeBox(node, px, py) {
+      const rect = getNodeBoxPixelRect(node);
+      const vPad = 5;
+      if (py < rect.y1 - vPad || py > rect.y2 + vPad) return null;
+
+      // Ensure the middle portion of the rectangle is always reserved for moving, even on narrow 1-cell nodes
+      const edgeZone = Math.min(NODE_EDGE_HIT_W, Math.max(7, rect.width * 0.28));
+
+      if (px >= rect.x1 - NODE_EDGE_HIT_W && px <= rect.x1 + edgeZone) {
+        return 'left';
+      }
+      if (px >= rect.x2 - edgeZone && px <= rect.x2 + NODE_EDGE_HIT_W) {
+        return 'right';
+      }
+      if (px > rect.x1 + edgeZone && px < rect.x2 - edgeZone) {
+        return 'center';
+      }
+      return null;
+    }
+
+    // Finds if cursor is over any relay point (1 <= k <= nodes.length - 2) for Eraser mode
+    function findRelayNodeAtCanvasPos(px, py) {
+      const candidates = state.onlyMoveSelected
+        ? state.shapes.filter(s => state.selectedShapeIds.includes(s.id))
+        : state.shapes;
+
+      // Prioritize active shape first, then top-to-bottom layers
+      const ordered = [...candidates].sort((a, b) => {
+        if (a.id === state.activeShapeId) return 1;
+        if (b.id === state.activeShapeId) return -1;
+        return 0;
+      });
+
+      for (let i = ordered.length - 1; i >= 0; i--) {
+        const sh = ordered[i];
+        const nodes = sh.nodes;
+        for (let k = 1; k < nodes.length - 1; k++) {
+          const hit = hitTestNodeBox(nodes[k], px, py);
+          if (hit) {
+            return { shape: sh, nodeIndex: k };
+          }
+        }
+      }
+      return null;
     }
 
     function mapLinearFromTopToPerspectiveT(vFromTop) {
       const clamped = Math.max(0, Math.min(1, vFromTop));
-      // Smooth exponential foreshortening curve derived from the interior interval growth rate
       return (Math.exp(SMOOTH_PERSP_K * clamped) - 1) / (Math.exp(SMOOTH_PERSP_K) - 1);
     }
 
@@ -743,18 +915,6 @@
       return uvToPerspectiveXY(u, vFromTop);
     }
 
-    /**
-     * Evaluates a single edge (left or right) from x0 (at segment start) to x1 (at segment end)
-     * at local segment progress localTau in [0, 1] according to the user's exact rules:
-     * 1. If X coordinates are equal (x0 === x1), it becomes a straight line.
-     * 2. If curveMode is 'right' (） ）):
-     *    - If x0 < x1 (start is left of end): curves as ） (bows right -> easeOut)
-     *    - If x0 > x1 (start is right of end): curves as （ (bows left  -> easeOut)
-     * 3. If curveMode is 'left' (（ （):
-     *    - If x0 < x1 (start is left of end): curves as （ (bows left  -> easeIn)
-     *    - If x0 > x1 (start is right of end): curves as ） (bows right -> easeIn)
-     * 4. Left edge and right edge each follow the rule above independently based on their own x0, x1.
-     */
     function evaluateSingleEdgeAtTau(x0, x1, mode, localTau) {
       if (x0 === x1 || mode === 'straight') {
         return x0 + (x1 - x0) * localTau;
@@ -763,10 +923,8 @@
       const easeOut = 1 - (1 - localTau) * (1 - localTau);
 
       if (mode === 'right') {
-        // ）） mode: x0 < x1 => ） (bows right), x0 > x1 => （ (bows left)
         return x0 + (x1 - x0) * easeOut;
       } else if (mode === 'left') {
-        // （（ mode: x0 < x1 => （ (bows left), x0 > x1 => ） (bows right)
         return x0 + (x1 - x0) * easeIn;
       }
       return x0 + (x1 - x0) * localTau;
@@ -795,10 +953,8 @@
       const overallTau = Math.max(0, Math.min(1, (row - startY) / totalSpan));
 
       if (colorObj.fadeToTransparent) {
-        // Guide / Gold Guide: fade from guideOpacity at bottom (overallTau=0) to 0 at top (overallTau=1)
         return state.guideOpacity * (1 - overallTau);
       } else {
-        // Slide / Gold Slide: uniform slideOpacity
         return state.slideOpacity;
       }
     }
@@ -842,7 +998,7 @@
       ctx.fillStyle = '#0c1017';
       ctx.fillRect(gx0, gy0, gw, gh);
 
-      // 1. Render painted grid cells (if any)
+      // 1. Render painted grid cells
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < GRID_COLS; c++) {
           const cell = state.grid[r] && state.grid[r][c];
@@ -854,12 +1010,12 @@
         }
       }
 
-      // 2. Render smooth shapes in layer order (bottom to top)
+      // 2. Render smooth shapes
       for (const shape of state.shapes) {
         drawSmoothShapeOnPalette(ctx, shape);
       }
 
-      // 3. Draw vertical grid lines & bottom X numbers (1..12 from left to right at bottom)
+      // 3. Draw vertical grid lines & bottom X numbers
       ctx.save();
       ctx.font = '11px Inter, sans-serif';
       ctx.textAlign = 'center';
@@ -881,7 +1037,7 @@
         }
       }
 
-      // 4. Draw horizontal grid lines & left Y numbers starting from bottom-left (1..rows)
+      // 4. Draw horizontal grid lines & left Y numbers
       const drawLineStep = rows >= 1920 ? 30 : (rows >= 192 ? 2 : 1);
       const quarterStep = Math.max(1, Math.round(rows / 4));
       const sixteenthStep = Math.max(1, Math.round(rows / 16));
@@ -930,7 +1086,18 @@
       ctx.strokeRect(gx0, gy0, gw, gh);
       ctx.restore();
 
-      // 5. Draw selection outlines for all selected shapes, and detailed handles for the active shape
+      // 5. In Eraser mode, show relay point markers on all shapes so user knows they can erase relay points
+      if (state.mode === 'eraser') {
+        for (const sh of state.shapes) {
+          if (sh.nodes && sh.nodes.length > 2) {
+            for (let k = 1; k < sh.nodes.length - 1; k++) {
+              drawNodeRectangleFrame(ctx, sh.nodes[k], k, sh.nodes.length, false, true);
+            }
+          }
+        }
+      }
+
+      // 6. Draw selection outlines & node rectangular frames for selected shapes
       if (state.mode === 'draw') {
         const selectedShapes = getSelectedShapes();
         for (const sh of selectedShapes) {
@@ -939,21 +1106,113 @@
         }
       }
 
-      // 6. Draw hover preview (target shape outline, handle highlight, relay placement preview, or new shape ghost)
+      // 7. Draw hover preview
       if (hoverState.inside && !dragState.active) {
         drawHoverPreviewOnPalette(ctx);
       }
+    }
+
+    function drawNodeRectangleFrame(ctx, node, nodeIndex, totalNodes, isActiveNode, isEraserHint = false) {
+      const rect = getNodeBoxPixelRect(node);
+      const isStart = nodeIndex === 0;
+      const isEnd = nodeIndex === totalNodes - 1;
+
+      const baseColor = isEraserHint
+        ? '#fb7185'
+        : (isStart ? '#38bdf8' : (isEnd ? '#fbbf24' : '#e879f9'));
+
+      ctx.save();
+
+      if (isActiveNode) {
+        // Prominent single rectangular frame (一つの長方形の枠)
+        // Interior fill for moving
+        ctx.fillStyle = isStart
+          ? 'rgba(14, 165, 233, 0.20)'
+          : (isEnd ? 'rgba(245, 158, 11, 0.20)' : 'rgba(217, 70, 239, 0.22)');
+        ctx.fillRect(rect.x1, rect.y1, rect.width, rect.height);
+
+        // Top and bottom horizontal edges of the rectangle (move zone border)
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.0;
+        ctx.strokeRect(rect.x1, rect.y1, rect.width, rect.height);
+
+        // Center Y reference line inside the box
+        ctx.beginPath();
+        ctx.moveTo(rect.x1, rect.yCenter);
+        ctx.lineTo(rect.x2, rect.yCenter);
+        ctx.strokeStyle = baseColor;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Left & Right vertical edges (縦の部分 = 幅調整) emphasized as thick interactive grip bars
+        const gripW = 6;
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(rect.x1 - gripW / 2, rect.y1 - 1, gripW, rect.height + 2);
+        ctx.fillRect(rect.x2 - gripW / 2, rect.y1 - 1, gripW, rect.height + 2);
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(rect.x1 - gripW / 2, rect.y1 - 1, gripW, rect.height + 2);
+        ctx.strokeRect(rect.x2 - gripW / 2, rect.y1 - 1, gripW, rect.height + 2);
+
+        // Label badge
+        const cTag = (!isEnd)
+          ? (node.curveMode === 'left' ? ' [（（]' : (node.curveMode === 'right' ? ' [））]' : ' [｜｜]'))
+          : '';
+        const title = isStart ? `始点${cTag}` : (isEnd ? '終点' : `中継${nodeIndex}${cTag}`);
+        const badgeY = isStart ? (rect.y2 + 11) : (rect.y1 - 11);
+        drawHoverBadge(ctx, (rect.x1 + rect.x2) * 0.5, badgeY, `${title} (縦辺:幅 / 内側:移動)`, '#0f172a', baseColor);
+      } else {
+        // Inactive node on the selected shape (or Eraser relay hint): large clickable target box
+        ctx.fillStyle = isEraserHint ? 'rgba(244, 63, 94, 0.14)' : 'rgba(15, 23, 42, 0.45)';
+        ctx.fillRect(rect.x1, rect.y1 + 4, rect.width, rect.height - 8);
+
+        ctx.strokeStyle = baseColor;
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash(isEraserHint ? [3, 2] : []);
+        ctx.strokeRect(rect.x1, rect.y1 + 4, rect.width, rect.height - 8);
+        ctx.setLineDash([]);
+
+        // Center Y line
+        ctx.beginPath();
+        ctx.moveTo(rect.x1, rect.yCenter);
+        ctx.lineTo(rect.x2, rect.yCenter);
+        ctx.strokeStyle = baseColor;
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+
+        // Compact label
+        const cTag = (!isEnd)
+          ? (node.curveMode === 'left' ? '[（（]' : (node.curveMode === 'right' ? '[））]' : '[｜｜]'))
+          : '';
+        const label = isEraserHint
+          ? `中継${nodeIndex}`
+          : (isStart ? `始点${cTag}` : (isEnd ? '終点' : `中継${nodeIndex}${cTag}`));
+
+        ctx.font = 'bold 10px "Noto Sans JP", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.95)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(label, (rect.x1 + rect.x2) * 0.5, rect.yCenter);
+      }
+
+      ctx.restore();
     }
 
     function drawHoverPreviewOnPalette(ctx) {
       ctx.save();
       const N_SEG_STEPS = 28;
 
-      if (hoverState.type === 'shape' || hoverState.type === 'eraseShape') {
+      if (hoverState.type === 'shape' || hoverState.type === 'eraseShape' || hoverState.type === 'relaySelectShape') {
         const sh = state.shapes.find(s => s.id === hoverState.shapeId);
         if (sh && sh.nodes && sh.nodes.length >= 2) {
           const nodes = sh.nodes;
           const isErase = hoverState.type === 'eraseShape';
+          const isRelaySel = hoverState.type === 'relaySelectShape';
 
           ctx.beginPath();
           const firstL = gridToPaletteXY(nodes[0].left, nodes[0].y);
@@ -981,7 +1240,13 @@
             ctx.fillStyle = 'rgba(244, 63, 94, 0.22)';
             ctx.fill();
             ctx.strokeStyle = 'rgba(251, 113, 133, 0.95)';
-            ctx.lineWidth = 2.4;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+          } else if (isRelaySel) {
+            ctx.fillStyle = 'rgba(217, 70, 239, 0.15)';
+            ctx.fill();
+            ctx.strokeStyle = '#f0abfc';
+            ctx.lineWidth = 2.6;
             ctx.stroke();
           } else {
             ctx.strokeStyle = 'rgba(56, 189, 248, 0.95)';
@@ -992,67 +1257,59 @@
             ctx.shadowBlur = 0;
           }
 
-          drawHoverBadge(ctx, hoverState.px, hoverState.py - 18, hoverState.label, isErase ? '#be123c' : '#0369a1');
+          const badgeBg = isErase ? '#be123c' : (isRelaySel ? '#86198f' : '#0369a1');
+          drawHoverBadge(ctx, hoverState.px, hoverState.py - 20, hoverState.label, badgeBg);
+        }
+      } else if (hoverState.type === 'eraseRelay') {
+        const sh = state.shapes.find(s => s.id === hoverState.shapeId);
+        const node = sh && sh.nodes[hoverState.nodeIndex];
+        if (node) {
+          const rect = getNodeBoxPixelRect(node);
+          ctx.fillStyle = 'rgba(225, 29, 72, 0.38)';
+          ctx.fillRect(rect.x1, rect.y1, rect.width, rect.height);
+          ctx.strokeStyle = '#fda4af';
+          ctx.lineWidth = 2.6;
+          ctx.strokeRect(rect.x1, rect.y1, rect.width, rect.height);
+          drawHoverBadge(ctx, (rect.x1 + rect.x2) * 0.5, rect.y1 - 14, hoverState.label, '#be123c');
         }
       } else if (hoverState.type === 'handleLeft' || hoverState.type === 'handleRight' || hoverState.type === 'handleCenter') {
         const sh = getActiveShape();
         const node = sh && sh.nodes[hoverState.nodeIndex];
         if (node) {
-          let pt = null;
-          if (hoverState.type === 'handleLeft') pt = gridToPaletteXY(node.left, node.y);
-          else if (hoverState.type === 'handleRight') pt = gridToPaletteXY(node.right, node.y);
-          else pt = gridToPaletteXY((node.left + node.right) * 0.5, node.y);
-
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 13, 0, Math.PI * 2);
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          drawHoverBadge(ctx, pt.x, pt.y - 22, hoverState.label, '#0284c7');
+          const rect = getNodeBoxPixelRect(node);
+          if (hoverState.type === 'handleLeft') {
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
+            ctx.fillRect(rect.x1 - 6, rect.y1 - 2, 12, rect.height + 4);
+            drawHoverBadge(ctx, rect.x1, rect.y1 - 14, hoverState.label, '#0284c7');
+          } else if (hoverState.type === 'handleRight') {
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
+            ctx.fillRect(rect.x2 - 6, rect.y1 - 2, 12, rect.height + 4);
+            drawHoverBadge(ctx, rect.x2, rect.y1 - 14, hoverState.label, '#0284c7');
+          } else {
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2.4;
+            ctx.strokeRect(rect.x1, rect.y1, rect.width, rect.height);
+            drawHoverBadge(ctx, (rect.x1 + rect.x2) * 0.5, rect.y1 - 14, hoverState.label, '#0284c7');
+          }
         }
       } else if (hoverState.type === 'relayAdd') {
-        const ptL = gridToPaletteXY(hoverState.insertLeft, hoverState.insertY);
-        const ptR = gridToPaletteXY(hoverState.insertRight, hoverState.insertY);
-        const ptC = gridToPaletteXY((hoverState.insertLeft + hoverState.insertRight) * 0.5, hoverState.insertY);
+        const previewNode = {
+          left: hoverState.insertLeft,
+          right: hoverState.insertRight,
+          y: hoverState.insertY,
+          curveMode: 'straight'
+        };
+        const rect = getNodeBoxPixelRect(previewNode);
 
-        ctx.beginPath();
-        ctx.moveTo(ptL.x, ptL.y);
-        ctx.lineTo(ptR.x, ptR.y);
+        ctx.fillStyle = 'rgba(217, 70, 239, 0.25)';
+        ctx.fillRect(rect.x1, rect.y1, rect.width, rect.height);
         ctx.strokeStyle = '#f0abfc';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([4, 2]);
-        ctx.stroke();
+        ctx.lineWidth = 2.2;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeRect(rect.x1, rect.y1, rect.width, rect.height);
         ctx.setLineDash([]);
 
-        drawSquareHandle(ctx, ptL.x, ptL.y, '#e879f9', true);
-        drawSquareHandle(ctx, ptR.x, ptR.y, '#e879f9', true);
-        drawCircleHandle(ctx, ptC.x, ptC.y, 8.5, '#d946ef', '#ffffff', hoverState.label, 'top');
-      } else if (hoverState.type === 'relayDelete') {
-        const sh = getActiveShape();
-        const node = sh && sh.nodes[hoverState.nodeIndex];
-        if (node) {
-          const ptL = gridToPaletteXY(node.left, node.y);
-          const ptR = gridToPaletteXY(node.right, node.y);
-          const ptC = gridToPaletteXY((node.left + node.right) * 0.5, node.y);
-
-          ctx.beginPath();
-          ctx.moveTo(ptL.x, ptL.y);
-          ctx.lineTo(ptR.x, ptR.y);
-          ctx.strokeStyle = '#fb7185';
-          ctx.lineWidth = 3.5;
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.arc(ptC.x, ptC.y, 13, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(225, 29, 72, 0.35)';
-          ctx.fill();
-          ctx.strokeStyle = '#fda4af';
-          ctx.lineWidth = 2.2;
-          ctx.stroke();
-
-          drawHoverBadge(ctx, ptC.x, ptC.y - 22, hoverState.label, '#be123c');
-        }
+        drawHoverBadge(ctx, (rect.x1 + rect.x2) * 0.5, rect.y1 - 14, hoverState.label, '#a21caf');
       } else if (hoverState.type === 'newShapePreview') {
         const p00 = gridToPaletteXY(hoverState.insertLeft, 0);
         const p10 = gridToPaletteXY(hoverState.insertRight, 0);
@@ -1080,7 +1337,7 @@
       ctx.restore();
     }
 
-    function drawHoverBadge(ctx, x, y, text, bgColor = '#0284c7') {
+    function drawHoverBadge(ctx, x, y, text, bgColor = '#0284c7', borderColor = 'rgba(255,255,255,0.75)') {
       if (!text) return;
       ctx.save();
       ctx.font = 'bold 10px "Noto Sans JP", sans-serif';
@@ -1089,11 +1346,11 @@
       const boxW = textW + padX * 2;
       const boxH = 19;
       const clampedX = Math.max(PALETTE_PAD.left + boxW / 2, Math.min(paletteCanvas.width - PALETTE_PAD.right - boxW / 2, x));
-      const clampedY = Math.max(14, Math.min(paletteCanvas.height - 14, y));
+      const clampedY = Math.max(12, Math.min(paletteCanvas.height - 12, y));
 
       ctx.fillStyle = bgColor;
-      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.roundRect(clampedX - boxW / 2, clampedY - boxH / 2, boxW, boxH, 6);
       ctx.fill();
@@ -1219,7 +1476,7 @@
         }
         ctx.stroke();
 
-        // Center dashed spine (no '+' button inside palette)
+        // Center dashed spine
         const c0 = gridToPaletteXY((n0.left + n0.right) * 0.5, n0.y);
         const c1 = gridToPaletteXY((n1.left + n1.right) * 0.5, n1.y);
         ctx.beginPath();
@@ -1232,109 +1489,15 @@
         ctx.setLineDash([]);
       }
 
-      // Draw each node's horizontal bar, left/right square handles, and center circle handle
+      // First draw inactive nodes, then draw the active node's rectangular frame on top
       for (let k = 0; k < nodes.length; k++) {
-        const node = nodes[k];
-        const isStart = k === 0;
-        const isEnd = k === nodes.length - 1;
-        const isActiveNode = state.activeNodeIndex === k;
-
-        const ptL = gridToPaletteXY(node.left, node.y);
-        const ptR = gridToPaletteXY(node.right, node.y);
-        const ptC = gridToPaletteXY((node.left + node.right) * 0.5, node.y);
-
-        const barColor = isStart ? '#38bdf8' : (isEnd ? '#fbbf24' : '#e879f9');
-
-        ctx.beginPath();
-        ctx.moveTo(ptL.x, ptL.y);
-        ctx.lineTo(ptR.x, ptR.y);
-        ctx.strokeStyle = barColor;
-        ctx.lineWidth = isActiveNode ? 3.0 : 2.2;
-        ctx.stroke();
-
-        drawSquareHandle(ctx, ptL.x, ptL.y, barColor, isActiveNode);
-        drawSquareHandle(ctx, ptR.x, ptR.y, barColor, isActiveNode);
-
-        const cTag = node.curveMode === 'left' ? '[（（]' : (node.curveMode === 'right' ? '[））]' : '[｜｜]');
-        let label = '';
-        let fill = '#0284c7';
-        let stroke = '#e0f2fe';
-        let labelPos = 'top';
-
-        if (isStart) {
-          label = `始点${cTag}`;
-          fill = isActiveNode ? '#0ea5e9' : '#0284c7';
-          stroke = isActiveNode ? '#ffffff' : '#e0f2fe';
-          labelPos = 'bottom';
-        } else if (isEnd) {
-          label = '終点';
-          fill = isActiveNode ? '#f59e0b' : '#d97706';
-          stroke = isActiveNode ? '#ffffff' : '#fef3c7';
-          labelPos = 'top';
-        } else {
-          label = `中継${k}${cTag}`;
-          fill = isActiveNode ? '#d946ef' : '#a21caf';
-          stroke = isActiveNode ? '#ffffff' : '#fae8ff';
-          labelPos = 'top';
+        if (k !== state.activeNodeIndex) {
+          drawNodeRectangleFrame(ctx, nodes[k], k, nodes.length, false, false);
         }
-
-        drawCircleHandle(ctx, ptC.x, ptC.y, isActiveNode ? 8.5 : 7.0, fill, stroke, label, labelPos);
       }
+      const activeIdx = Math.max(0, Math.min(nodes.length - 1, state.activeNodeIndex));
+      drawNodeRectangleFrame(ctx, nodes[activeIdx], activeIdx, nodes.length, true, false);
 
-      ctx.restore();
-    }
-
-    function drawAddRelayBadge(ctx, x, y) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, 6.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-      ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = 'rgba(232, 121, 249, 0.85)';
-      ctx.stroke();
-
-      ctx.strokeStyle = '#f0abfc';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(x - 3, y);
-      ctx.lineTo(x + 3, y);
-      ctx.moveTo(x, y - 3);
-      ctx.lineTo(x, y + 3);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawCircleHandle(ctx, x, y, radius, fill, stroke, label, pos = 'top') {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = fill;
-      ctx.fill();
-      ctx.lineWidth = 2.2;
-      ctx.strokeStyle = stroke;
-      ctx.stroke();
-
-      if (label) {
-        ctx.font = 'bold 10px "Noto Sans JP", sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0,0,0,0.95)';
-        ctx.shadowBlur = 4;
-        const labelY = pos === 'bottom' ? (y + radius + 13) : (y - radius - 6);
-        ctx.fillText(label, x, labelY);
-      }
-      ctx.restore();
-    }
-
-    function drawSquareHandle(ctx, x, y, color, highlight = false) {
-      const sz = highlight ? 9.5 : 8;
-      ctx.save();
-      ctx.fillStyle = '#0f172a';
-      ctx.strokeStyle = color;
-      ctx.lineWidth = highlight ? 2.4 : 2;
-      ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
-      ctx.strokeRect(x - sz / 2, y - sz / 2, sz, sz);
       ctx.restore();
     }
 
@@ -1401,7 +1564,7 @@
         ctx.restore();
       }
 
-      // 4. Main white frame & lane lines (interior horizontal lines hidden)
+      // 4. Main white frame & lane lines
       if (state.showMainLines) {
         ctx.save();
         ctx.strokeStyle = '#ffffff';
@@ -1409,7 +1572,6 @@
         ctx.lineJoin = 'round';
         ctx.lineWidth = 2.8;
 
-        // Only draw top border (t = 0) and bottom border (t = 1), hiding interior horizontal lines
         const boundaryT = [0, 1];
         for (const t of boundaryT) {
           const y = (PERSP_GEOM.topY + t * (PERSP_GEOM.botY - PERSP_GEOM.topY)) * H;
@@ -1510,7 +1672,6 @@
         state.selectedShapeIds = [];
         state.activeShapeId = null;
         state.activeNodeIndex = 0;
-        state.relaySubMode = null;
       } else {
         state.selectedShapeIds = [shapeId];
         state.activeShapeId = shapeId;
@@ -1535,9 +1696,6 @@
         state.selectedShapeIds.push(shapeId);
         state.activeShapeId = shapeId;
         state.activeNodeIndex = 0;
-      }
-      if (state.selectedShapeIds.length === 0) {
-        state.relaySubMode = null;
       }
       syncUIWithSelectedShape();
       renderAll();
@@ -1611,8 +1769,6 @@
 
       let cMode = state.currentCurveMode;
       let nodeInfoText = '未選択';
-      let canAddRelay = false;
-      let canDelRelay = false;
 
       if (activeShape) {
         const nodes = activeShape.nodes;
@@ -1629,28 +1785,22 @@
         } else {
           nodeInfoText = `中継${nIdx} (Y:${yDisp}, 幅:${nodes[nIdx].right - nodes[nIdx].left})`;
         }
-
-        const totalSpan = nodes[nodes.length - 1].y - nodes[0].y;
-        canAddRelay = totalSpan > getMinFineStepY() * 2;
-        canDelRelay = nodes.length > 2;
-      } else {
-        state.relaySubMode = null;
       }
-
-      if (!canAddRelay && state.relaySubMode === 'add') state.relaySubMode = null;
-      if (!canDelRelay && state.relaySubMode === 'delete') state.relaySubMode = null;
 
       document.getElementById('lblSelectedNodeInfo').textContent =
         selectedShapes.length > 1 ? `${selectedShapes.length}個のレイヤー選択中` : nodeInfoText;
 
       const btnAdd = document.getElementById('btnAddRelayPoint');
-      const btnDel = document.getElementById('btnDeleteRelayPoint');
-      btnAdd.disabled = !canAddRelay;
-      btnDel.disabled = !canDelRelay;
-      btnAdd.classList.toggle('active-add', state.relaySubMode === 'add');
-      btnDel.classList.toggle('active-del', state.relaySubMode === 'delete');
-      btnAdd.innerHTML = state.relaySubMode === 'add' ? '<span>● 追加モード中</span>' : '<span>＋ 中継点追加</span>';
-      btnDel.innerHTML = state.relaySubMode === 'delete' ? '<span>● 削除モード中</span>' : '<span>－ 中継点削除</span>';
+      if (btnAdd) {
+        const isAddActive = state.relaySubMode === 'add';
+        btnAdd.classList.toggle('active-add', isAddActive);
+        btnAdd.innerHTML = isAddActive
+          ? '<span>● 中継点追加モード中 (ON)</span>'
+          : '<span>＋ 中継点追加モード</span>';
+      }
+
+      document.getElementById('btnSnapGrid').classList.toggle('active', !state.fine1920Snap);
+      document.getElementById('btnSnap1920').classList.toggle('active', state.fine1920Snap);
 
       document.getElementById('lblCurveModeName').textContent = CURVE_MODES[cMode] || CURVE_MODES.straight;
       document.querySelectorAll('.curve-btn').forEach(btn => {
@@ -1658,35 +1808,34 @@
       });
     }
 
-    function toggleRelaySubMode(targetMode) {
-      const shape = getActiveShape();
-      if (!shape) {
-        showToast('先に図形を選択してください');
-        return;
-      }
-      if (state.relaySubMode === targetMode) {
+    function toggleRelayAddMode() {
+      if (state.relaySubMode === 'add') {
         state.relaySubMode = null;
         showToast('通常編集モードに戻りました');
       } else {
-        state.relaySubMode = targetMode;
-        if (targetMode === 'add') {
-          showToast('中継点追加モード: 選択中の図形をクリックして中継点を配置');
-        } else if (targetMode === 'delete') {
-          showToast('中継点削除モード: 削除したい中継点(●)をクリック');
+        if (state.mode === 'eraser') {
+          state.mode = 'draw';
+          document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === 'draw');
+          });
+        }
+        state.relaySubMode = 'add';
+        if (getActiveShape()) {
+          showToast('中継点追加モード: 選択図形の好きな場所をクリックして中継点を配置');
+        } else {
+          showToast('中継点追加モード: 図形をクリックして選択→もう一度クリックで中継点を配置');
         }
       }
       syncUIWithSelectedShape();
       renderAll();
     }
 
-    // Place a relay point at a specific row (Y) inside the active shape
-    function insertRelayPointAtRow(shape, rawRowFloat) {
+    function insertRelayPointAtRow(shape, rawRowFloat, forceFine1920 = false) {
       if (!shape || !shape.nodes || shape.nodes.length < 2) return false;
       const nodes = shape.nodes;
       const rows = state.gridRows;
       const step1920 = getMinFineStepY(rows);
 
-      // Find which segment [segIdx, segIdx+1] contains rawRowFloat
       let segIdx = -1;
       for (let k = 0; k < nodes.length - 1; k++) {
         if (rawRowFloat >= nodes[k].y && rawRowFloat <= nodes[k + 1].y) {
@@ -1703,7 +1852,7 @@
         return false;
       }
 
-      const newY = computeNodeSnappedY(rawRowFloat, n0.y + step1920, n1.y - step1920, n0.y, n1.y);
+      const newY = computeNodeSnappedY(rawRowFloat, n0.y + step1920, n1.y - step1920, n0.y, n1.y, forceFine1920);
       const localTau = (newY - n0.y) / Math.max(step1920, n1.y - n0.y);
       const { leftCol, rightCol } = evaluateSegmentEdgesAtTau(n0, n1, localTau);
       const newLeft = snapInt(leftCol, 0, GRID_COLS - 1);
@@ -1722,7 +1871,7 @@
       syncUIWithSelectedShape();
       renderAll();
       triggerAutoSave();
-      showToast(`中継点${segIdx + 1}を配置しました`);
+      showToast(`中継点${segIdx + 1}を配置しました (枠の縦辺で幅調整・内側で移動)`);
       return true;
     }
 
@@ -1731,13 +1880,10 @@
       saveHistory();
       shape.nodes.splice(nIdx, 1);
       state.activeNodeIndex = Math.max(0, nIdx - 1);
-      if (shape.nodes.length <= 2 && state.relaySubMode === 'delete') {
-        state.relaySubMode = null;
-      }
       syncUIWithSelectedShape();
       renderAll();
       triggerAutoSave();
-      showToast(`中継点${nIdx}を削除しました`);
+      showToast(`中継点${nIdx}を消しゴムで削除しました`);
       return true;
     }
 
@@ -1762,7 +1908,6 @@
 
       const selectedSet = new Set(state.selectedShapeIds);
 
-      // Display from top-most layer (end of state.shapes) to bottom-most layer (start of state.shapes)
       for (let i = state.shapes.length - 1; i >= 0; i--) {
         const sh = state.shapes[i];
         const cObj = COLORS[sh.color] || COLORS.green;
@@ -1833,7 +1978,6 @@
       saveHistory();
 
       if (dir > 0) {
-        // Move up (toward end of array)
         for (let i = state.shapes.length - 2; i >= 0; i--) {
           if (selectedSet.has(state.shapes[i].id) && !selectedSet.has(state.shapes[i + 1].id)) {
             const tmp = state.shapes[i];
@@ -1842,7 +1986,6 @@
           }
         }
       } else {
-        // Move down (toward start of array)
         for (let i = 1; i < state.shapes.length; i++) {
           if (selectedSet.has(state.shapes[i].id) && !selectedSet.has(state.shapes[i - 1].id)) {
             const tmp = state.shapes[i];
@@ -1893,7 +2036,7 @@
           id: 'shape_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
           color: src.color,
           nodes: newNodes
-        });
+        }, state.gridRows);
 
         state.shapes.push(newShape);
         newIds.push(newShape.id);
@@ -1966,7 +2109,7 @@
         id: 'shape_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
         color: tpl.color || state.currentColor,
         nodes
-      });
+      }, rows);
 
       state.shapes.push(newShape);
       selectSingleShape(newShape.id, 0);
@@ -2113,7 +2256,7 @@
 
     function buildExportPayload() {
       return {
-        version: 4,
+        version: 5,
         savedAt: new Date().toISOString(),
         gridRows: state.gridRows,
         lastUsedWidth: state.lastUsedWidth,
@@ -2210,20 +2353,20 @@
       };
     }
 
-    function dist(x1, y1, x2, y2) {
-      return Math.hypot(x2 - x1, y2 - y1);
-    }
+    // Erase at point: first checks if cursor hits a Relay Point box; if so, deletes only that relay point.
+    // Otherwise deletes the shape or grid cell under cursor.
+    function eraseAtCanvasAndGrid(px, py, col, row) {
+      const relayHit = findRelayNodeAtCanvasPos(px, py);
+      if (relayHit) {
+        relayHit.shape.nodes.splice(relayHit.nodeIndex, 1);
+        if (state.activeShapeId === relayHit.shape.id) {
+          state.activeNodeIndex = Math.max(0, relayHit.nodeIndex - 1);
+        }
+        syncUIWithSelectedShape();
+        showToast(`中継点${relayHit.nodeIndex}を削除しました`);
+        return true;
+      }
 
-    function cycleNodeCurveMode(shape, nodeIdx) {
-      if (!shape || !shape.nodes || nodeIdx < 0 || nodeIdx >= shape.nodes.length - 1) return;
-      const order = ['straight', 'left', 'right'];
-      const cur = shape.nodes[nodeIdx].curveMode || 'straight';
-      const next = order[(order.indexOf(cur) + 1) % order.length];
-      shape.nodes[nodeIdx].curveMode = next;
-      state.currentCurveMode = next;
-    }
-
-    function eraseAtPoint(col, row) {
       const candidates = state.onlyMoveSelected
         ? state.shapes.filter(s => state.selectedShapeIds.includes(s.id))
         : state.shapes;
@@ -2238,7 +2381,8 @@
             state.activeNodeIndex = 0;
           }
           syncUIWithSelectedShape();
-          return;
+          showToast('図形を消去しました');
+          return true;
         }
       }
 
@@ -2247,8 +2391,10 @@
       if (r >= 0 && r < state.gridRows && c >= 0 && c < GRID_COLS) {
         if (state.grid[r] && state.grid[r][c]) {
           state.grid[r][c] = null;
+          return true;
         }
       }
+      return false;
     }
 
     const dragState = {
@@ -2256,6 +2402,8 @@
       type: null, // 'nodeLeft' | 'nodeRight' | 'nodeCenter' | 'newShape' | 'moveShapes' | 'erase'
       nodeIndex: 0,
       moved: false,
+      mutated: false,
+      pendingSnapshot: null,
       wasAlreadySelected: false,
       dragOffsetCols: 0,
       startGridCol: 0,
@@ -2263,7 +2411,7 @@
       initialSelectedSnapshots: []
     };
 
-    function updateHoverState(pos, gridPt) {
+    function updateHoverState(pos, gridPt, shiftKey = false) {
       hoverState.inside = true;
       hoverState.px = pos.x;
       hoverState.py = pos.y;
@@ -2278,8 +2426,19 @@
       const lblHover = document.getElementById('lblHoverTarget');
       const activeShape = getActiveShape();
 
-      // 1. Eraser mode hover preview
+      // 1. Eraser mode: check relay points first, then whole shapes
       if (state.mode === 'eraser') {
+        paletteCanvas.style.cursor = 'pointer';
+        const relayHit = findRelayNodeAtCanvasPos(pos.x, pos.y);
+        if (relayHit) {
+          hoverState.type = 'eraseRelay';
+          hoverState.shapeId = relayHit.shape.id;
+          hoverState.nodeIndex = relayHit.nodeIndex;
+          hoverState.label = `🧹 クリックで中継${relayHit.nodeIndex}を削除`;
+          if (lblHover) lblHover.textContent = hoverState.label;
+          return;
+        }
+
         const candidates = state.onlyMoveSelected
           ? state.shapes.map((s, i) => ({ s, i })).filter(item => state.selectedShapeIds.includes(item.s.id))
           : state.shapes.map((s, i) => ({ s, i }));
@@ -2288,107 +2447,138 @@
           if (isPointInsideShape(s, gridPt.col, gridPt.row)) {
             hoverState.type = 'eraseShape';
             hoverState.shapeId = s.id;
-            hoverState.label = `🗑 クリックで消去: ${getShapeDisplayName(s, i)}`;
+            hoverState.label = `🗑 クリックで図形を消去: ${getShapeDisplayName(s, i)}`;
             if (lblHover) lblHover.textContent = hoverState.label;
             return;
           }
         }
-        if (lblHover) lblHover.textContent = '消しゴム: 図形に合わせてクリックで消去';
+        if (lblHover) lblHover.textContent = '消しゴム: 中継点の枠をクリックで中継削除 / 図形をクリックで図形消去';
         return;
       }
 
-      // 2. Relay Delete Mode hover preview
-      if (state.relaySubMode === 'delete' && activeShape) {
-        const nodes = activeShape.nodes;
-        const hitRadius = 15;
-        for (let k = 1; k < nodes.length - 1; k++) {
-          const n = nodes[k];
-          const pC = gridToPaletteXY((n.left + n.right) * 0.5, n.y);
-          if (dist(pos.x, pos.y, pC.x, pC.y) <= hitRadius) {
-            hoverState.type = 'relayDelete';
-            hoverState.shapeId = activeShape.id;
-            hoverState.nodeIndex = k;
-            hoverState.label = `✕ 中継${k}を削除`;
-            if (lblHover) lblHover.textContent = hoverState.label;
-            return;
+      // 2. Relay Add Mode (works even when no shape is selected yet!)
+      if (state.relaySubMode === 'add') {
+        // First check if cursor is on an existing node box of the active shape so user can also adjust/move nodes
+        if (activeShape) {
+          const nodes = activeShape.nodes;
+          const checkOrder = [state.activeNodeIndex, ...nodes.map((_, i) => i).filter(i => i !== state.activeNodeIndex)];
+          for (const k of checkOrder) {
+            const n = nodes[k];
+            if (!n) continue;
+            const zone = hitTestNodeBox(n, pos.x, pos.y);
+            if (zone) {
+              const nodeTitle = k === 0 ? '始点' : (k === nodes.length - 1 ? '終点' : `中継${k}`);
+              if (zone === 'left') {
+                paletteCanvas.style.cursor = 'ew-resize';
+                hoverState.type = 'handleLeft';
+                hoverState.shapeId = activeShape.id;
+                hoverState.nodeIndex = k;
+                hoverState.label = `${nodeTitle}・左縦辺ドラッグで幅調整`;
+              } else if (zone === 'right') {
+                paletteCanvas.style.cursor = 'ew-resize';
+                hoverState.type = 'handleRight';
+                hoverState.shapeId = activeShape.id;
+                hoverState.nodeIndex = k;
+                hoverState.label = `${nodeTitle}・右縦辺ドラッグで幅調整`;
+              } else {
+                paletteCanvas.style.cursor = 'move';
+                hoverState.type = 'handleCenter';
+                hoverState.shapeId = activeShape.id;
+                hoverState.nodeIndex = k;
+                hoverState.label = `${nodeTitle}・枠内ドラッグで移動`;
+              }
+              if (lblHover) lblHover.textContent = hoverState.label;
+              return;
+            }
           }
         }
-        if (lblHover) lblHover.textContent = '中継点削除モード: 削除する中継点(●)をクリック';
-        return;
-      }
 
-      // 3. Relay Add Mode hover preview on selected shape
-      if (state.relaySubMode === 'add' && activeShape) {
-        const nodes = activeShape.nodes;
-        const step1920 = getMinFineStepY();
-        if (isPointInsideShape(activeShape, gridPt.col, gridPt.row)) {
+        // If cursor is inside the currently active shape -> preview placing a relay point at grid or 1920
+        if (activeShape && isPointInsideShape(activeShape, gridPt.col, gridPt.row)) {
+          const nodes = activeShape.nodes;
+          const step1920 = getMinFineStepY();
           for (let k = 0; k < nodes.length - 1; k++) {
             const n0 = nodes[k];
             const n1 = nodes[k + 1];
             if (gridPt.row >= n0.y && gridPt.row <= n1.y && (n1.y - n0.y) >= step1920 * 2) {
-              const insY = computeNodeSnappedY(gridPt.row, n0.y + step1920, n1.y - step1920, n0.y, n1.y);
+              const insY = computeNodeSnappedY(gridPt.row, n0.y + step1920, n1.y - step1920, n0.y, n1.y, shiftKey);
               const tau = (insY - n0.y) / Math.max(step1920, n1.y - n0.y);
               const { leftCol, rightCol } = evaluateSegmentEdgesAtTau(n0, n1, tau);
               const insL = snapInt(leftCol, 0, GRID_COLS - 1);
               const insR = Math.max(insL + 1, snapInt(rightCol, 1, GRID_COLS));
 
+              paletteCanvas.style.cursor = 'copy';
               hoverState.type = 'relayAdd';
               hoverState.shapeId = activeShape.id;
               hoverState.segIndex = k;
               hoverState.insertY = insY;
               hoverState.insertLeft = insL;
               hoverState.insertRight = insR;
-              hoverState.label = `＋ 中継点を配置 (Y:${formatYValue(insY)})`;
+              hoverState.label = `＋ クリックで中継点を配置 (Y:${formatYValue(insY)})`;
               if (lblHover) lblHover.textContent = hoverState.label;
               return;
             }
           }
         }
-        if (lblHover) lblHover.textContent = '中継点追加モード: 選択図形の上をクリックして中継点を配置';
+
+        // Otherwise check if cursor is over ANY shape so user can click to select it first!
+        for (let i = state.shapes.length - 1; i >= 0; i--) {
+          const sh = state.shapes[i];
+          if (isPointInsideShape(sh, gridPt.col, gridPt.row)) {
+            paletteCanvas.style.cursor = 'pointer';
+            hoverState.type = 'relaySelectShape';
+            hoverState.shapeId = sh.id;
+            hoverState.label = `クリックでこの図形を選択 (${getShapeDisplayName(sh, i)}) → 中継点追加へ`;
+            if (lblHover) lblHover.textContent = hoverState.label;
+            return;
+          }
+        }
+
+        paletteCanvas.style.cursor = 'default';
+        if (lblHover) {
+          lblHover.textContent = activeShape
+            ? '中継点追加モード: 選択図形の上をクリックして中継点を配置 (他の図形クリックで切替)'
+            : '中継点追加モード: まず中継点を置きたい図形をクリックして選択してください';
+        }
         return;
       }
 
-      // 4. Active shape handle hover preview
+      // 3. Normal Draw/Edit Mode: Check large rectangular frame of active shape's nodes (Active node prioritized)
       if (activeShape) {
-        const hitRadius = 13;
         const nodes = activeShape.nodes;
-        for (let k = 0; k < nodes.length; k++) {
+        const checkOrder = [state.activeNodeIndex, ...nodes.map((_, i) => i).filter(i => i !== state.activeNodeIndex)];
+        for (const k of checkOrder) {
           const n = nodes[k];
-          const pL = gridToPaletteXY(n.left, n.y);
-          const pR = gridToPaletteXY(n.right, n.y);
-          const pC = gridToPaletteXY((n.left + n.right) * 0.5, n.y);
-          const nodeTitle = k === 0 ? '始点' : (k === nodes.length - 1 ? '終点' : `中継${k}`);
-
-          if (dist(pos.x, pos.y, pL.x, pL.y) <= hitRadius) {
-            hoverState.type = 'handleLeft';
-            hoverState.shapeId = activeShape.id;
-            hoverState.nodeIndex = k;
-            hoverState.label = `${nodeTitle}・左端の幅調整`;
-            if (lblHover) lblHover.textContent = hoverState.label;
-            return;
-          }
-          if (dist(pos.x, pos.y, pR.x, pR.y) <= hitRadius) {
-            hoverState.type = 'handleRight';
-            hoverState.shapeId = activeShape.id;
-            hoverState.nodeIndex = k;
-            hoverState.label = `${nodeTitle}・右端の幅調整`;
-            if (lblHover) lblHover.textContent = hoverState.label;
-            return;
-          }
-          if (dist(pos.x, pos.y, pC.x, pC.y) <= hitRadius + 3) {
-            hoverState.type = 'handleCenter';
-            hoverState.shapeId = activeShape.id;
-            hoverState.nodeIndex = k;
-            hoverState.label = k < nodes.length - 1
-              ? `${nodeTitle}を移動 / クリックでカーブ切替`
-              : `${nodeTitle}を移動`;
+          if (!n) continue;
+          const zone = hitTestNodeBox(n, pos.x, pos.y);
+          if (zone) {
+            const nodeTitle = k === 0 ? '始点' : (k === nodes.length - 1 ? '終点' : `中継${k}`);
+            if (zone === 'left') {
+              paletteCanvas.style.cursor = 'ew-resize';
+              hoverState.type = 'handleLeft';
+              hoverState.shapeId = activeShape.id;
+              hoverState.nodeIndex = k;
+              hoverState.label = `${nodeTitle}・左縦辺ドラッグで幅調整`;
+            } else if (zone === 'right') {
+              paletteCanvas.style.cursor = 'ew-resize';
+              hoverState.type = 'handleRight';
+              hoverState.shapeId = activeShape.id;
+              hoverState.nodeIndex = k;
+              hoverState.label = `${nodeTitle}・右縦辺ドラッグで幅調整`;
+            } else {
+              paletteCanvas.style.cursor = 'move';
+              hoverState.type = 'handleCenter';
+              hoverState.shapeId = activeShape.id;
+              hoverState.nodeIndex = k;
+              hoverState.label = `${nodeTitle}・枠内ドラッグで移動`;
+            }
             if (lblHover) lblHover.textContent = hoverState.label;
             return;
           }
         }
       }
 
-      // 5. Shape selection hover preview
+      // 4. Shape body hover preview
       const searchList = state.onlyMoveSelected
         ? state.shapes.map((s, i) => ({ s, i })).filter(item => state.selectedShapeIds.includes(item.s.id))
         : state.shapes.map((s, i) => ({ s, i }));
@@ -2396,20 +2586,22 @@
       for (let idx = searchList.length - 1; idx >= 0; idx--) {
         const { s, i } = searchList[idx];
         if (isPointInsideShape(s, gridPt.col, gridPt.row)) {
+          paletteCanvas.style.cursor = 'pointer';
           hoverState.type = 'shape';
           hoverState.shapeId = s.id;
           const isAlreadySel = state.selectedShapeIds.includes(s.id);
           hoverState.label = isAlreadySel
-            ? `ドラッグで移動 / クリックで選択解除 (${getShapeDisplayName(s, i)})`
+            ? `ドラッグで全体移動 / クリックで選択解除 (${getShapeDisplayName(s, i)})`
             : `クリックで選択: ${getShapeDisplayName(s, i)}`;
           if (lblHover) lblHover.textContent = hoverState.label;
           return;
         }
       }
 
-      // 6. Empty space hover: if selected -> inform click will deselect; if unselected -> show new shape width preview
+      // 5. Empty space hover
+      paletteCanvas.style.cursor = 'crosshair';
       if (state.selectedShapeIds.length > 0) {
-        if (lblHover) lblHover.textContent = 'クリックで選択を解除';
+        if (lblHover) lblHover.textContent = '空白クリックで選択を解除';
       } else if (!state.onlyMoveSelected) {
         const w = Math.min(GRID_COLS, Math.max(1, state.lastUsedWidth));
         const startLeft = snapInt(Math.floor(gridPt.col) - Math.floor((w - 1) / 2), 0, GRID_COLS - w);
@@ -2431,99 +2623,46 @@
       const gridPt = paletteXYToGrid(pos.x, pos.y);
       const rows = state.gridRows;
 
+      // 1. Eraser Mode: deletes Relay Point if clicked on a relay point, otherwise deletes shape
       if (state.mode === 'eraser') {
-        saveHistory();
+        const snapBefore = createCurrentSnapshot();
+        const didErase = eraseAtCanvasAndGrid(pos.x, pos.y, gridPt.col, gridPt.row);
         dragState.active = true;
         dragState.type = 'erase';
-        eraseAtPoint(gridPt.col, gridPt.row);
+        dragState.mutated = didErase;
+        dragState.pendingSnapshot = snapBefore;
+        updateHoverState(pos, gridPt, evt.shiftKey);
         renderAll();
-        triggerAutoSave();
         return;
       }
 
       const activeShape = getActiveShape();
 
-      // 1. Relay Point Delete sub-mode: click a relay point on the selected shape to remove it
-      if (state.relaySubMode === 'delete' && activeShape) {
-        const hitRadius = 15;
-        const nodes = activeShape.nodes;
-        for (let k = 1; k < nodes.length - 1; k++) {
-          const n = nodes[k];
-          const pC = gridToPaletteXY((n.left + n.right) * 0.5, n.y);
-          if (dist(pos.x, pos.y, pC.x, pC.y) <= hitRadius) {
-            deleteRelayPointByIndex(activeShape, k);
-            updateHoverState(pos, gridPt);
-            renderAll();
-            return;
-          }
-        }
-        // Clicked outside any relay point while in delete mode -> exit relay sub-mode or deselect
-        state.relaySubMode = null;
-        selectSingleShape(null);
-        updateHoverState(pos, gridPt);
-        renderAll();
-        showToast('選択を解除しました');
-        return;
-      }
-
-      // 2. Relay Point Add sub-mode: click inside the selected shape to place a relay point
-      if (state.relaySubMode === 'add' && activeShape) {
-        if (isPointInsideShape(activeShape, gridPt.col, gridPt.row)) {
-          if (insertRelayPointAtRow(activeShape, gridPt.row)) {
-            updateHoverState(pos, gridPt);
-            renderAll();
-            return;
-          }
-        } else {
-          // Clicked outside selected shape -> deselect and exit add mode
-          state.relaySubMode = null;
-          selectSingleShape(null);
-          updateHoverState(pos, gridPt);
-          renderAll();
-          showToast('選択を解除しました');
-          return;
-        }
-      }
-
-      // 3. Check handles of the active shape
+      // 2. Check if clicking inside any Node's large rectangular frame on the active shape
+      // (Works in both normal draw mode and relay add mode!)
       if (activeShape) {
-        const hitRadius = 13;
         const nodes = activeShape.nodes;
-
-        for (let k = 0; k < nodes.length; k++) {
+        const checkOrder = [state.activeNodeIndex, ...nodes.map((_, i) => i).filter(i => i !== state.activeNodeIndex)];
+        for (const k of checkOrder) {
           const n = nodes[k];
-          const pL = gridToPaletteXY(n.left, n.y);
-          const pR = gridToPaletteXY(n.right, n.y);
-          const pC = gridToPaletteXY((n.left + n.right) * 0.5, n.y);
-
-          if (dist(pos.x, pos.y, pL.x, pL.y) <= hitRadius) {
-            saveHistory();
-            state.activeNodeIndex = k;
-            dragState.active = true;
-            dragState.type = 'nodeLeft';
-            dragState.nodeIndex = k;
-            syncUIWithSelectedShape();
-            renderAll();
-            return;
-          }
-          if (dist(pos.x, pos.y, pR.x, pR.y) <= hitRadius) {
-            saveHistory();
-            state.activeNodeIndex = k;
-            dragState.active = true;
-            dragState.type = 'nodeRight';
-            dragState.nodeIndex = k;
-            syncUIWithSelectedShape();
-            renderAll();
-            return;
-          }
-          if (dist(pos.x, pos.y, pC.x, pC.y) <= hitRadius + 3) {
-            saveHistory();
+          if (!n) continue;
+          const zone = hitTestNodeBox(n, pos.x, pos.y);
+          if (zone) {
             state.activeNodeIndex = k;
             dragState.active = true;
             dragState.moved = false;
-            dragState.type = 'nodeCenter';
+            dragState.mutated = false;
+            dragState.pendingSnapshot = createCurrentSnapshot();
             dragState.nodeIndex = k;
-            dragState.dragOffsetCols = Math.round(gridPt.col) - n.left;
+
+            if (zone === 'left') {
+              dragState.type = 'nodeLeft';
+            } else if (zone === 'right') {
+              dragState.type = 'nodeRight';
+            } else {
+              dragState.type = 'nodeCenter';
+              dragState.dragOffsetCols = Math.round(gridPt.col) - n.left;
+            }
             syncUIWithSelectedShape();
             renderAll();
             return;
@@ -2531,7 +2670,46 @@
         }
       }
 
-      // 4. Check if clicking inside a shape
+      // 3. Relay Point Add sub-mode:
+      //    - If clicking inside the already-selected shape -> insert relay point
+      //    - If clicking inside an unselected shape (or another shape) -> select that shape first!
+      //    - If clicking empty space -> deselect current shape
+      if (state.relaySubMode === 'add') {
+        if (activeShape && isPointInsideShape(activeShape, gridPt.col, gridPt.row)) {
+          if (insertRelayPointAtRow(activeShape, gridPt.row, evt.shiftKey)) {
+            updateHoverState(pos, gridPt, evt.shiftKey);
+            renderAll();
+            return;
+          }
+        }
+
+        // Check if clicking on any shape to select it
+        for (let i = state.shapes.length - 1; i >= 0; i--) {
+          const sh = state.shapes[i];
+          if (isPointInsideShape(sh, gridPt.col, gridPt.row)) {
+            selectSingleShape(sh.id, 0);
+            state.currentColor = sh.color;
+            state.currentCurveMode = sh.nodes[0]?.curveMode || 'straight';
+            updateColorButtonsUI();
+            syncUIWithSelectedShape();
+            updateHoverState(pos, gridPt, evt.shiftKey);
+            renderAll();
+            showToast('図形を選択しました。中継点を置きたい場所をクリックしてください');
+            return;
+          }
+        }
+
+        // Clicked empty space in relay add mode -> deselect shape (keep relay add mode active)
+        if (state.selectedShapeIds.length > 0) {
+          selectSingleShape(null);
+          updateHoverState(pos, gridPt, evt.shiftKey);
+          renderAll();
+          showToast('選択を解除しました（中継点追加モード中）');
+        }
+        return;
+      }
+
+      // 4. Normal Draw Mode: Check if clicking inside a shape body
       const searchList = state.onlyMoveSelected
         ? state.shapes.filter(s => state.selectedShapeIds.includes(s.id))
         : state.shapes;
@@ -2545,7 +2723,17 @@
               state.selectedShapeIds.push(sh.id);
               state.activeShapeId = sh.id;
             } else {
-              selectSingleShape(sh.id, 0);
+              // Pick the nearest node to the clicked Y so its rectangular frame is ready
+              let closestK = 0;
+              let minDiff = Infinity;
+              sh.nodes.forEach((nd, idx) => {
+                const d = Math.abs(nd.y - gridPt.row);
+                if (d < minDiff) {
+                  minDiff = d;
+                  closestK = idx;
+                }
+              });
+              selectSingleShape(sh.id, closestK);
             }
           } else {
             state.activeShapeId = sh.id;
@@ -2555,11 +2743,11 @@
           updateColorButtonsUI();
           syncUIWithSelectedShape();
 
-          // Start dragging all currently selected shapes together (if released without moving and wasAlreadySelected, it will deselect)
-          saveHistory();
           dragState.active = true;
           dragState.type = 'moveShapes';
           dragState.moved = false;
+          dragState.mutated = false;
+          dragState.pendingSnapshot = createCurrentSnapshot();
           dragState.wasAlreadySelected = alreadySelected && !(evt.shiftKey || evt.ctrlKey || evt.metaKey);
           dragState.startGridCol = Math.round(gridPt.col);
           dragState.startGridRow = Math.round(gridPt.row);
@@ -2572,22 +2760,22 @@
         }
       }
 
-      // 5. If any shape is currently selected and user clicks empty space (no buttons/handles/shapes), DESELECT instead of drawing
+      // 5. Clicking empty space while a shape is selected -> deselect
       if (state.selectedShapeIds.length > 0) {
         selectSingleShape(null);
-        updateHoverState(pos, gridPt);
+        updateHoverState(pos, gridPt, evt.shiftKey);
         renderAll();
         showToast('選択を解除しました');
         return;
       }
 
       if (state.onlyMoveSelected) {
-        showToast('「指定レイヤーのみ移動・編集」がONです');
+        showToast('「選択レイヤーのみ編集」がONです');
         return;
       }
 
-      // 6. Unselected state: create a new shape starting at bottom (Y=0) using lastUsedWidth for both start and end
-      saveHistory();
+      // 6. Unselected state: create a new shape starting at bottom (Y=0) with lastUsedWidth
+      const snapBeforeNew = createCurrentSnapshot();
       const w = Math.min(GRID_COLS, Math.max(1, state.lastUsedWidth));
       const startLeft = snapInt(Math.floor(gridPt.col) - Math.floor((w - 1) / 2), 0, GRID_COLS - w);
       const clickedRow = snapInt(gridPt.row, 1, rows);
@@ -2598,12 +2786,16 @@
           { left: startLeft, right: startLeft + w, y: 0, curveMode: state.currentCurveMode || 'straight' },
           { left: startLeft, right: startLeft + w, y: Math.max(1, clickedRow), curveMode: 'straight' }
         ]
-      });
+      }, rows);
       state.shapes.push(newShape);
       selectSingleShape(newShape.id, 1);
+
       dragState.active = true;
       dragState.type = 'newShape';
       dragState.nodeIndex = 1;
+      dragState.moved = true;
+      dragState.mutated = true;
+      dragState.pendingSnapshot = snapBeforeNew;
       syncUIWithSelectedShape();
       renderAll();
     });
@@ -2618,13 +2810,14 @@
       document.getElementById('lblCursorCell').textContent = `X: ${dispX} , Y: ${dispY}`;
 
       if (!dragState.active) {
-        updateHoverState(pos, gridPt);
+        updateHoverState(pos, gridPt, evt.shiftKey);
         renderPalette();
         return;
       }
 
       if (dragState.type === 'erase') {
-        eraseAtPoint(gridPt.col, gridPt.row);
+        const erased = eraseAtCanvasAndGrid(pos.x, pos.y, gridPt.col, gridPt.row);
+        if (erased) dragState.mutated = true;
         renderAll();
         return;
       }
@@ -2637,6 +2830,7 @@
         const dRow = snappedRow - dragState.startGridRow;
         if (dCol !== 0 || dRow !== 0) {
           dragState.moved = true;
+          dragState.mutated = true;
         }
 
         for (const snap of dragState.initialSelectedSnapshots) {
@@ -2676,29 +2870,41 @@
       const nextY = k < nodes.length - 1 ? nodes[k + 1].y : null;
 
       if (dragState.type === 'nodeLeft') {
-        node.left = Math.min(node.right - 1, Math.max(0, snappedCol));
-        setLastUsedWidth(node.right - node.left);
+        const newLeft = Math.min(node.right - 1, Math.max(0, snappedCol));
+        if (newLeft !== node.left) {
+          node.left = newLeft;
+          dragState.moved = true;
+          dragState.mutated = true;
+          setLastUsedWidth(node.right - node.left);
+        }
       } else if (dragState.type === 'nodeRight') {
-        node.right = Math.max(node.left + 1, Math.min(GRID_COLS, snappedCol));
-        setLastUsedWidth(node.right - node.left);
+        const newRight = Math.max(node.left + 1, Math.min(GRID_COLS, snappedCol));
+        if (newRight !== node.right) {
+          node.right = newRight;
+          dragState.moved = true;
+          dragState.mutated = true;
+          setLastUsedWidth(node.right - node.left);
+        }
       } else if (dragState.type === 'nodeCenter') {
         const w = node.right - node.left;
         const newLeft = snapInt(snappedCol - dragState.dragOffsetCols, 0, GRID_COLS - w);
-        const newY = computeNodeSnappedY(gridPt.row, 0, rows, prevY, nextY);
+        const newY = computeNodeSnappedY(gridPt.row, 0, rows, prevY, nextY, evt.shiftKey);
         if (newLeft !== node.left || Math.abs(newY - node.y) > 1e-5) {
           dragState.moved = true;
+          dragState.mutated = true;
+          node.left = newLeft;
+          node.right = newLeft + w;
+          node.y = newY;
         }
-        node.left = newLeft;
-        node.right = newLeft + w;
-        node.y = newY;
       } else if (dragState.type === 'newShape') {
         const endNode = nodes[nodes.length - 1];
         const w = endNode.right - endNode.left;
         const newLeft = snapInt(Math.floor(gridPt.col) - Math.floor((w - 1) / 2), 0, GRID_COLS - w);
-        const newY = computeNodeSnappedY(gridPt.row, nodes[0].y + step1920, rows, nodes[0].y, null);
+        const newY = computeNodeSnappedY(gridPt.row, nodes[0].y + step1920, rows, nodes[0].y, null, evt.shiftKey);
         endNode.left = newLeft;
         endNode.right = newLeft + w;
         endNode.y = Math.max(nodes[0].y + step1920, newY);
+        dragState.mutated = true;
       }
 
       syncUIWithSelectedShape();
@@ -2708,6 +2914,7 @@
     paletteCanvas.addEventListener('pointerleave', () => {
       hoverState.inside = false;
       hoverState.type = null;
+      paletteCanvas.style.cursor = 'crosshair';
       const lblHover = document.getElementById('lblHoverTarget');
       if (lblHover) lblHover.textContent = 'カーソル位置 (左下起点):';
       if (!dragState.active) {
@@ -2718,22 +2925,18 @@
     function finishPointerDrag() {
       if (!dragState.active) return;
 
-      if (dragState.type === 'nodeCenter' && !dragState.moved) {
-        const shape = getActiveShape();
-        if (shape && dragState.nodeIndex < shape.nodes.length - 1) {
-          cycleNodeCurveMode(shape, dragState.nodeIndex);
-          syncUIWithSelectedShape();
-        }
-      } else if (dragState.type === 'moveShapes' && !dragState.moved && dragState.wasAlreadySelected) {
-        // Clicking on an already-selected shape (where there is no handle/button) without dragging deselects it
-        state.history.pop();
-        updateUndoButton();
+      if (dragState.type === 'moveShapes' && !dragState.moved && dragState.wasAlreadySelected) {
+        // Clicking on an already-selected shape body (outside node boxes) without dragging deselects it
         selectSingleShape(null);
         showToast('選択を解除しました');
+      } else if (dragState.mutated && dragState.pendingSnapshot) {
+        pushSnapshotToHistory(dragState.pendingSnapshot);
       }
 
       dragState.active = false;
       dragState.type = null;
+      dragState.pendingSnapshot = null;
+      dragState.mutated = false;
       renderAll();
       triggerAutoSave();
     }
@@ -2750,7 +2953,7 @@
         btn.classList.toggle('active', btn.dataset.mode === newMode);
       });
       syncUIWithSelectedShape();
-      showToast(newMode === 'eraser' ? '図形やマスをクリックして消去' : 'パレット上で作成・編集');
+      showToast(newMode === 'eraser' ? '消しゴム: 中継点の枠クリックで中継削除 / 図形クリックで消去' : 'パレット上で作成・編集');
       renderAll();
     }
 
@@ -2782,7 +2985,7 @@
       });
     });
 
-    // Opacity Sliders (Slide & Guide)
+    // Opacity Sliders
     document.getElementById('rngSlideOpacity').addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
       state.slideOpacity = val / 100;
@@ -2799,7 +3002,7 @@
       triggerAutoSave();
     });
 
-    // Curve Mode Selector Buttons: Straight, ((, ))
+    // Curve Mode Selector Buttons
     document.querySelectorAll('.curve-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         state.currentCurveMode = btn.dataset.curve;
@@ -2811,7 +3014,6 @@
             const segIdx = Math.min(state.activeNodeIndex, sh.nodes.length - 2);
             sh.nodes[segIdx].curveMode = state.currentCurveMode;
           } else {
-            // Apply to all segments of all selected shapes when multiple layers are selected
             selected.forEach(sh => {
               sh.nodes.forEach(n => { n.curveMode = state.currentCurveMode; });
             });
@@ -2823,10 +3025,22 @@
       });
     });
 
-    document.getElementById('btnAddRelayPoint').addEventListener('click', () => toggleRelaySubMode('add'));
-    document.getElementById('btnDeleteRelayPoint').addEventListener('click', () => toggleRelaySubMode('delete'));
+    // Relay Point Add Mode & Snap Interval Buttons
+    document.getElementById('btnAddRelayPoint').addEventListener('click', toggleRelayAddMode);
 
-    // Collapsible Tabs Setup (5. Layer Management, 6. Shape Templates, 7. Full Palette Save)
+    document.getElementById('btnSnapGrid').addEventListener('click', () => {
+      state.fine1920Snap = false;
+      syncUIWithSelectedShape();
+      showToast('配置間隔: グリッド間隔 (他の中継点に近づけると自動で1920分割)');
+    });
+
+    document.getElementById('btnSnap1920').addEventListener('click', () => {
+      state.fine1920Snap = true;
+      syncUIWithSelectedShape();
+      showToast('配置間隔: 1920分割 (どこでも1920分割の細密位置に配置・移動)');
+    });
+
+    // Collapsible Tabs
     document.querySelectorAll('[data-collapse-target]').forEach(btn => {
       btn.addEventListener('click', () => {
         const targetId = btn.dataset.collapseTarget;
@@ -2847,7 +3061,7 @@
 
     document.getElementById('chkOnlyMoveSelected').addEventListener('change', (e) => {
       state.onlyMoveSelected = e.target.checked;
-      showToast(state.onlyMoveSelected ? '指定レイヤーのみ移動・編集モードON' : '通常編集モード');
+      showToast(state.onlyMoveSelected ? '選択レイヤーのみ編集モードON' : '通常編集モード');
     });
 
     document.getElementById('btnSelectAllLayers').addEventListener('click', () => {
@@ -2902,6 +3116,7 @@
       reader.onload = () => {
         try {
           const data = JSON.parse(reader.result);
+          saveHistory();
           applyLoadedData(data);
           showToast('JSONデータを読み込みました');
         } catch (err) {
@@ -2923,12 +3138,20 @@
     });
 
     document.getElementById('btnUndo').addEventListener('click', undo);
+    document.getElementById('btnRedo').addEventListener('click', redo);
 
     window.addEventListener('keydown', (e) => {
       if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        undo();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         copySelectedShape();
@@ -3046,7 +3269,18 @@
       try {
         const savedPalette = localStorage.getItem(STORAGE_KEY_PALETTE);
         if (savedPalette) {
-          applyLoadedData(JSON.parse(savedPalette));
+          const parsed = JSON.parse(savedPalette);
+          // Validate that shapes don't have corrupted NaN coordinates from older history bug
+          if (Array.isArray(parsed.shapes)) {
+            parsed.shapes.forEach(s => {
+              if (Array.isArray(s.nodes)) {
+                s.nodes.forEach((n, idx) => {
+                  if (!Number.isFinite(n.y)) n.y = idx === 0 ? 0 : (parsed.gridRows || 16);
+                });
+              }
+            });
+          }
+          applyLoadedData(parsed);
           loaded = true;
         }
       } catch (e) {
@@ -3064,7 +3298,7 @@
               { left: 4, right: 8, y: Math.round(rows * 0.5), curveMode: 'right' },
               { left: 2, right: 5, y: Math.round(rows * 0.88), curveMode: 'straight' }
             ]
-          }),
+          }, rows),
           normalizeShape({
             id: 'sample_green',
             color: 'green',
@@ -3072,7 +3306,7 @@
               { left: 6, right: 11, y: 0, curveMode: 'right' },
               { left: 4, right: 8, y: rows, curveMode: 'straight' }
             ]
-          })
+          }, rows)
         ];
         selectSingleShape('sample_green', 0);
         updateColorButtonsUI();
@@ -3084,7 +3318,8 @@
       }
 
       state.history = [];
-      updateUndoButton();
+      state.redoStack = [];
+      updateHistoryButtons();
     }
 
     window.onload = initApp;
