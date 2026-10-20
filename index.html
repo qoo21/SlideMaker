@@ -71,6 +71,11 @@
       border-color: #7dd3fc;
       color: #ffffff;
     }
+    .tap-curve-btn.active {
+      background: linear-gradient(135deg, #a21caf 0%, #7e22ce 100%);
+      border-color: #f0abfc;
+      color: #ffffff;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col bg-[#090b10] text-slate-100">
@@ -136,7 +141,7 @@
           </label>
           <label class="flex items-center gap-1 text-[10px] sm:text-xs text-slate-300 bg-slate-800 px-2 sm:px-3 py-1 rounded-lg border border-slate-700 cursor-pointer hover:bg-slate-700/70 transition">
             <input type="checkbox" id="chkShowSubGrid" class="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded accent-sky-400" />
-            <span>細分割グリッド線</span>
+            <span>分割グリッド線</span>
           </label>
         </div>
       </div>
@@ -146,191 +151,170 @@
       </div>
     </section>
 
-    <!-- 2. MIDDLE SECTION: Always 3 Columns (Compact Left Controls | Center Palette | Compact Right Controls) -->
-    <section class="w-full max-w-[1120px] mx-auto grid grid-cols-[76px_minmax(0,1fr)_76px] sm:grid-cols-[136px_minmax(0,1fr)_136px] md:grid-cols-[168px_minmax(0,1fr)_168px] gap-1.5 sm:gap-3 items-stretch">
+    <!-- 2. MIDDLE SECTION: Always 3 Columns (Single-Column Left Controls | Center Zoomable Palette | Single-Column Right Controls) -->
+    <section class="w-full max-w-[1160px] mx-auto grid grid-cols-[68px_minmax(0,1fr)_68px] sm:grid-cols-[108px_minmax(0,1fr)_108px] md:grid-cols-[124px_minmax(0,1fr)_124px] gap-1.5 sm:gap-3 items-start">
 
-      <!-- LEFT VERTICAL TOOLBAR: Undo/Redo, Tools, Relay Point, Copy/Paste/Delete -->
-      <div class="flex flex-col gap-1.5 sm:gap-2.5 bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5">
+      <!-- LEFT VERTICAL TOOLBAR: All buttons stacked in 1 vertical column -->
+      <div class="flex flex-col gap-1.5 sm:gap-2 bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-2">
 
-        <!-- History: Undo / Redo -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5">
-          <div class="flex items-center justify-between mb-1 sm:mb-1.5">
-            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">履歴</span>
-            <span class="hidden sm:inline text-[10px] font-mono text-slate-400">Ctrl+Z/Y</span>
-          </div>
-          <div class="grid grid-cols-2 gap-1 sm:gap-1.5">
-            <button id="btnUndo" class="py-1.5 sm:py-2 px-1 sm:px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1" title="元に戻す (Ctrl+Z)">
-              <span class="text-xs sm:text-sm leading-none">↩</span>
-              <span class="leading-none">戻る</span>
-            </button>
-            <button id="btnRedo" class="py-1.5 sm:py-2 px-1 sm:px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1" title="やり直す (Ctrl+Y)">
-              <span class="text-xs sm:text-sm leading-none">↪</span>
-              <span class="leading-none">進む</span>
-            </button>
-          </div>
+        <!-- History: Undo / Redo (1 Column) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col gap-1">
+          <span class="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-300 text-center">履歴</span>
+          <button id="btnUndo" class="w-full py-1.5 px-1 sm:px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex items-center justify-center gap-1" title="元に戻す (Ctrl+Z)">
+            <span>戻る</span>
+          </button>
+          <button id="btnRedo" class="w-full py-1.5 px-1 sm:px-2 rounded-lg text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 border border-slate-600 transition disabled:opacity-35 flex items-center justify-center gap-1" title="やり直す (Ctrl+Y)">
+            <span>進む</span>
+          </button>
         </div>
 
-        <!-- Mode Selector: Draw/Edit vs Eraser -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5">
-          <div class="flex items-center justify-between mb-1 sm:mb-1.5">
-            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">ツール</span>
-          </div>
-          <div class="flex flex-col gap-1 sm:gap-1.5">
-            <button data-mode="draw" class="tool-btn active w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg border border-slate-700 bg-slate-800/90 text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition">
-              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              <span class="truncate">描画</span>
-            </button>
-            <button data-mode="eraser" class="tool-btn w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg border border-slate-700 bg-slate-800/90 text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition" title="図形や中継点の枠をクリックして削除">
-              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              <span class="truncate">消しゴム</span>
-            </button>
-          </div>
+        <!-- Mode Selector: Draw/Edit vs Eraser vs Pan (1 Column) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col gap-1">
+          <span class="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-300 text-center">ツール</span>
+          <button data-mode="draw" class="tool-btn active w-full px-1 sm:px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800/90 text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 transition">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            <span class="truncate">描画</span>
+          </button>
+          <button data-mode="eraser" class="tool-btn w-full px-1 sm:px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800/90 text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 transition" title="図形や中継点の枠をクリックして削除">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span class="truncate">消しゴム</span>
+          </button>
+          <button data-mode="pan" class="tool-btn w-full px-1 sm:px-2 py-1.5 rounded-lg border border-slate-700 bg-slate-800/90 text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1 transition" title="拡大したパレットをドラッグしてスクロール移動">
+            <span class="truncate">移動</span>
+          </button>
         </div>
 
-        <!-- Relay Point Addition & Snap Mode -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col gap-1.5 sm:gap-2">
-          <div class="flex flex-col gap-0.5">
-            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">中継点</span>
-            <span id="lblSelectedNodeInfo" class="text-[9px] sm:text-[11px] font-mono text-amber-300 font-semibold truncate">未選択</span>
-          </div>
+        <!-- Relay Point Addition & Snap Mode (1 Column) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col gap-1">
+          <span class="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-300 text-center">中継点</span>
+          <span id="lblSelectedNodeInfo" class="text-[9px] sm:text-[10px] font-mono text-amber-300 font-semibold truncate text-center">未選択</span>
 
-          <button id="btnAddRelayPoint" class="relay-mode-btn w-full py-1.5 sm:py-2 px-1 sm:px-2 rounded-lg bg-fuchsia-600/20 hover:bg-fuchsia-600/35 border border-fuchsia-500/40 text-fuchsia-200 text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-0.5" title="未選択でもONにでき、図形をクリックして選択→クリックで中継点を追加します">
+          <button id="btnAddRelayPoint" class="relay-mode-btn w-full py-1.5 px-1 sm:px-2 rounded-lg bg-fuchsia-600/20 hover:bg-fuchsia-600/35 border border-fuchsia-500/40 text-fuchsia-200 text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-0.5" title="未選択でもONにでき、図形をクリックして選択→クリックで中継点を追加します">
             <span>＋中継追加</span>
           </button>
 
-          <div class="pt-1 border-t border-slate-800/80">
-            <span class="block text-[9px] sm:text-[10px] text-slate-400 font-medium mb-1 truncate">配置間隔</span>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
-              <button id="btnSnapGrid" class="snap-btn active py-1 px-1 rounded bg-slate-800 border border-slate-700 text-[9px] sm:text-[11px] font-semibold text-slate-200 transition truncate">
-                グリッド
-              </button>
-              <button id="btnSnap1920" class="snap-btn py-1 px-1 rounded bg-slate-800 border border-slate-700 text-[9px] sm:text-[11px] font-semibold text-slate-200 transition truncate">
-                1920分
-              </button>
-            </div>
+          <div class="pt-1 border-t border-slate-800/80 flex flex-col gap-1">
+            <span class="block text-[9px] sm:text-[10px] text-slate-400 font-medium text-center truncate">配置間隔</span>
+            <button id="btnSnapGrid" class="snap-btn active w-full py-1 px-1 rounded bg-slate-800 border border-slate-700 text-[9px] sm:text-[11px] font-semibold text-slate-200 transition truncate">
+              グリッド
+            </button>
+            <button id="btnSnap1920" class="snap-btn w-full py-1 px-1 rounded bg-slate-800 border border-slate-700 text-[9px] sm:text-[11px] font-semibold text-slate-200 transition truncate">
+              1920分
+            </button>
           </div>
         </div>
 
-        <!-- Copy / Paste / Delete Actions -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 mt-auto">
-          <div class="flex items-center justify-between mb-1 sm:mb-1.5">
-            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">編集</span>
-            <span class="hidden sm:inline text-[9px] font-mono text-slate-400">Ctrl+C/V</span>
-          </div>
-          <div class="flex flex-col gap-1 sm:gap-1.5">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-1.5">
-              <button id="btnCopyShape" class="py-1.5 px-1 sm:px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-0.5" title="選択図形をコピー (Ctrl+C)">
-                <span class="truncate">コピー</span>
-              </button>
-              <button id="btnPasteShape" class="py-1.5 px-1 sm:px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-0.5" title="コピーした図形を貼り付け (Ctrl+V)">
-                <span class="truncate">貼付</span>
-              </button>
-            </div>
-            <button id="btnDeleteShape" class="w-full py-1.5 px-1 sm:px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-[10px] sm:text-xs font-semibold text-rose-200 transition disabled:opacity-35 flex items-center justify-center gap-0.5" title="選択中の図形を削除 (Delete)">
-              <span>✕</span><span class="truncate">削除</span>
-            </button>
-          </div>
+        <!-- Copy / Paste / Delete Actions (1 Column) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col gap-1">
+          <span class="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-300 text-center">編集</span>
+          <button id="btnCopyShape" class="w-full py-1.5 px-1 sm:px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="選択図形をコピー (Ctrl+C)">
+            <span class="truncate">コピー</span>
+          </button>
+          <button id="btnPasteShape" class="w-full py-1.5 px-1 sm:px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs font-semibold text-slate-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="コピーした図形を貼り付け (Ctrl+V)">
+            <span class="truncate">貼付</span>
+          </button>
+          <button id="btnDeleteShape" class="w-full py-1.5 px-1 sm:px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-[10px] sm:text-xs font-semibold text-rose-200 transition disabled:opacity-35 flex items-center justify-center gap-1" title="選択中の図形を削除 (Delete)">
+            <span>✕</span><span class="truncate">削除</span>
+          </button>
         </div>
 
       </div>
 
-      <!-- CENTER COLUMN: 12×N Grid Palette Editor -->
-      <div class="flex flex-col items-center justify-between bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-3 min-w-0">
-        <div class="w-full flex flex-wrap items-center justify-between gap-1 mb-1 sm:mb-2">
+      <!-- CENTER COLUMN: 12×N Grid Palette Editor with Zoom Controls -->
+      <div class="flex flex-col items-center justify-between bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-3 min-w-0 w-full">
+        <div class="w-full flex flex-wrap items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
           <div class="min-w-0">
             <h2 class="text-xs sm:text-base font-bold text-white flex items-center gap-1.5 flex-wrap">
               <span>パレット (<span id="lblPaletteTitleDims">12×16</span>)</span>
               <span id="lblLastWidthBadge" class="text-[10px] sm:text-xs font-mono font-semibold px-1.5 sm:px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">新規幅: 2マス</span>
             </h2>
-            <p class="hidden sm:block text-[11px] text-slate-300 mt-0.5">
-              始点・中継・終点の<span class="text-sky-300 font-semibold">長方形枠</span>：左右の<span class="text-amber-300 font-semibold">縦辺で幅調整</span>、枠の<span class="text-emerald-300 font-semibold">内側で移動</span>
-            </p>
+          </div>
+
+          <!-- Unified Palette Zoom Bar (Right of Palette 12×16 header) -->
+          <div class="flex items-center gap-1 sm:gap-1.5 bg-slate-950/90 border border-slate-800 rounded-lg px-1.5 sm:px-2 py-1">
+            <span class="text-[9px] sm:text-[11px] font-bold text-slate-400 hidden sm:inline">表示倍率</span>
+            <button id="btnZoomOut" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 text-xs font-bold flex items-center justify-center transition" title="パレットを縮小">
+              －
+            </button>
+            <input type="range" id="rngPaletteZoom" min="50" max="350" step="10" value="100" class="w-16 sm:w-24 h-1.5 bg-slate-800 rounded-lg cursor-pointer" title="表示倍率スライダー (Ctrl+ホイールでも操作可能)" />
+            <button id="btnZoomIn" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 text-xs font-bold flex items-center justify-center transition" title="パレットを拡大">
+              ＋
+            </button>
+            <button id="btnZoomReset" class="px-1.5 h-6 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-[10px] sm:text-xs font-mono font-bold transition" title="クリックで100%にリセット">
+              100%
+            </button>
           </div>
         </div>
 
-        <div class="relative flex items-center justify-center my-0.5 w-full">
-          <canvas id="paletteCanvas" width="620" height="760" class="rounded-lg sm:rounded-xl canvas-shadow bg-[#07090e] cursor-crosshair touch-none w-full max-w-[540px] h-auto"></canvas>
+        <!-- Scrollable & Zoomable Palette Viewport -->
+        <div id="paletteViewport" class="relative w-full overflow-auto rounded-lg sm:rounded-xl bg-[#05070b] border border-slate-800/80 p-1.5 sm:p-2 block">
+          <div id="paletteZoomInner" class="mx-auto relative">
+            <canvas id="paletteCanvas" width="620" height="760" class="rounded-lg sm:rounded-xl canvas-shadow bg-[#07090e] cursor-crosshair touch-none block" style="max-width: none;"></canvas>
+          </div>
         </div>
 
-        <div class="w-full mt-1 sm:mt-2 flex items-center justify-between text-[10px] sm:text-xs bg-slate-950/90 border border-slate-800 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1 sm:py-1.5">
+        <div class="w-full mt-1.5 sm:mt-2 flex items-center justify-between text-[10px] sm:text-xs bg-slate-950/90 border border-slate-800 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1 sm:py-1.5">
           <span id="lblHoverTarget" class="text-slate-300 font-medium truncate">カーソル位置:</span>
           <span id="lblCursorCell" class="font-mono text-sky-300 font-bold shrink-0 ml-1">X: - , Y: -</span>
         </div>
       </div>
 
-      <!-- RIGHT VERTICAL TOOLBAR: Color (2x2), Grid (+/-), Curve Settings -->
-      <div class="flex flex-col gap-1.5 sm:gap-2.5 bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5">
+      <!-- RIGHT VERTICAL TOOLBAR: All buttons stacked in 1 vertical column -->
+      <div class="flex flex-col gap-1.5 sm:gap-2 bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-1.5 sm:p-2">
 
-        <!-- Color Selector (2x2 Rounded Squares, No names) -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col items-center">
-          <div class="w-full flex items-center justify-between mb-1.5 sm:mb-2">
-            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">色選択</span>
-            <span class="hidden sm:inline text-[9px] text-slate-400">上:ガイド</span>
-          </div>
-          <div class="grid grid-cols-2 gap-1.5 sm:gap-2.5 p-1.5 sm:p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl w-full max-w-[136px] place-items-center" id="colorPaletteContainer">
+        <!-- Color Selector (1 Vertical Column, No names) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col items-center gap-1.5">
+          <span class="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-300 text-center">色選択</span>
+          <div class="flex flex-col items-center gap-1.5 sm:gap-2 py-1 w-full" id="colorPaletteContainer">
             <!-- Green (Guide: Gradient) -->
-            <button data-color="green" class="color-swatch active w-6 h-6 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl border-2 border-emerald-400/70 transition" style="color: #00e676; background: linear-gradient(0deg, #00e676 0%, rgba(0,230,118,0.14) 100%);" title="ガイド (#00E676)"></button>
-            <!-- YellowGreen (Slide: #52FFBD) -->
-            <button data-color="yellowgreen" class="color-swatch w-6 h-6 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl border-2 border-teal-300/70 transition" style="color: #52FFBD; background: #52FFBD;" title="スライド (#52FFBD)"></button>
+            <button data-color="green" class="color-swatch active w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl border-2 border-emerald-400/70 transition" style="color: #00e676; background: linear-gradient(0deg, #00e676 0%, rgba(0,230,118,0.14) 100%);" title="ガイド (#00E676)"></button>
             <!-- Orange (Gold Guide: #FFCD42 Gradient) -->
-            <button data-color="orange" class="color-swatch w-6 h-6 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl border-2 border-amber-300/70 transition" style="color: #FFCD42; background: linear-gradient(0deg, #FFCD42 0%, rgba(255,205,66,0.14) 100%);" title="金ガイド (#FFCD42)"></button>
+            <button data-color="orange" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl border-2 border-amber-300/70 transition" style="color: #FFCD42; background: linear-gradient(0deg, #FFCD42 0%, rgba(255,205,66,0.14) 100%);" title="金ガイド (#FFCD42)"></button>
+            <!-- YellowGreen (Slide: #52FFBD) -->
+            <button data-color="yellowgreen" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl border-2 border-teal-300/70 transition" style="color: #52FFBD; background: #52FFBD;" title="スライド (#52FFBD)"></button>
             <!-- Yellow (Gold Slide: #FEF7A9) -->
-            <button data-color="yellow" class="color-swatch w-6 h-6 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-lg sm:rounded-xl border-2 border-yellow-200/70 transition" style="color: #FEF7A9; background: #FEF7A9;" title="金スライド (#FEF7A9)"></button>
+            <button data-color="yellow" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl border-2 border-yellow-200/70 transition" style="color: #FEF7A9; background: #FEF7A9;" title="金スライド (#FEF7A9)"></button>
           </div>
         </div>
 
-        <!-- Grid Setting (+/- buttons for 4,8,16,32,64,128,192,1920) -->
-        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col gap-1 sm:gap-1.5">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">グリッド</span>
-            <span class="hidden sm:inline text-[10px] text-sky-400 font-mono font-semibold">12×N</span>
+        <!-- Grid Setting (1 Vertical Column: + / Value / -) -->
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col items-center gap-1">
+          <span class="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-300 text-center">グリッド</span>
+          <button id="btnGridPlus" class="w-full py-1 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-xs sm:text-sm font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を増やす">
+            ＋
+          </button>
+          <div class="flex flex-col items-center py-0.5">
+            <span id="lblCurrentGridRows" class="text-xs sm:text-base font-extrabold font-mono text-sky-300 tracking-tight leading-none">16</span>
+            <span class="text-[8px] sm:text-[9px] text-slate-400">12×N</span>
           </div>
-          <div class="flex items-center justify-between gap-0.5 sm:gap-1.5 bg-slate-900/90 border border-slate-800 rounded-lg sm:rounded-xl p-1 sm:p-2">
-            <button id="btnGridMinus" class="w-5 h-6 sm:w-8 sm:h-8 rounded bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-xs sm:text-base font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35 shrink-0" title="分割数を減らす">
-              －
-            </button>
-            <div class="flex flex-col items-center min-w-0">
-              <span id="lblCurrentGridRows" class="text-xs sm:text-lg md:text-xl font-extrabold font-mono text-sky-300 tracking-tight leading-none">16</span>
-              <span class="hidden sm:inline text-[9px] text-slate-400 mt-0.5">分</span>
-            </div>
-            <button id="btnGridPlus" class="w-5 h-6 sm:w-8 sm:h-8 rounded bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-xs sm:text-base font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35 shrink-0" title="分割数を増やす">
-              ＋
-            </button>
-          </div>
-          <div class="hidden sm:block text-[9px] font-mono text-slate-400 text-center leading-tight">
-            4/8/16/32/64/128/192/1920
-          </div>
+          <button id="btnGridMinus" class="w-full py-1 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-600 text-xs sm:text-sm font-bold text-slate-100 flex items-center justify-center transition disabled:opacity-35" title="分割数を減らす">
+            －
+          </button>
         </div>
 
-        <!-- Curve Settings -->
-        <div id="curveControlBox" class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col gap-1.5 sm:gap-2 flex-1 justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-1 sm:mb-1.5">
-              <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">カーブ</span>
-              <span id="lblCurveModeName" class="hidden md:inline text-[10px] font-mono text-fuchsia-300 font-bold">直線 ｜｜</span>
-            </div>
-            <div class="flex flex-col gap-1 sm:gap-1.5" id="curveTypeButtons">
-              <button data-curve="straight" class="curve-btn active w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center sm:justify-between">
-                <span class="hidden sm:inline">直線</span>
-                <span class="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-slate-900/70">｜ ｜</span>
-              </button>
-              <button data-curve="left" class="curve-btn w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center sm:justify-between">
-                <span class="hidden sm:inline">カーブ</span>
-                <span class="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-slate-900/70">（ （</span>
-              </button>
-              <button data-curve="right" class="curve-btn w-full px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center sm:justify-between">
-                <span class="hidden sm:inline">カーブ</span>
-                <span class="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-slate-900/70">） ）</span>
-              </button>
-            </div>
+        <!-- Curve Settings (1 Vertical Column) -->
+        <div id="curveControlBox" class="bg-slate-950/70 border border-slate-800/90 rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col gap-1">
+          <span class="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-300 text-center">カーブ</span>
+          <span id="lblCurveModeName" class="hidden sm:block text-[9px] font-mono text-fuchsia-300 font-bold text-center truncate">直線 ｜｜</span>
+          <div class="flex flex-col gap-1" id="curveTypeButtons">
+            <button data-curve="straight" class="curve-btn active w-full px-1 sm:px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center">
+              <span class="font-mono text-[10px] sm:text-xs">｜ ｜</span>
+            </button>
+            <button data-curve="left" class="curve-btn w-full px-1 sm:px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center">
+              <span class="font-mono text-[10px] sm:text-xs">（ （</span>
+            </button>
+            <button data-curve="right" class="curve-btn w-full px-1 sm:px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-xs text-slate-200 font-bold transition flex items-center justify-center">
+              <span class="font-mono text-[10px] sm:text-xs">） ）</span>
+            </button>
           </div>
-
-          <div class="hidden sm:block text-[10px] text-slate-400 bg-slate-900/70 border border-slate-800/80 rounded-lg p-1.5 leading-snug">
-            始点・中継の<span class="text-sky-300 font-semibold">枠</span>を選択して区間カーブを切替
+          <div class="pt-1 border-t border-slate-800/80 flex flex-col gap-1">
+            <button id="btnToggleTapCurve" class="tap-curve-btn active w-full py-1 px-1 rounded bg-slate-800 border border-slate-700 text-[8px] sm:text-[10px] font-bold text-slate-200 transition truncate" title="始点・中間・終点をワンタップした時にカーブを切り替えるかどうかの設定">
+              タップ切替:ON
+            </button>
           </div>
         </div>
 
@@ -546,6 +530,8 @@
       mode: 'draw',
       relaySubMode: null, // null | 'add'
       fine1920Snap: false, // false = Grid interval (with auto-1920 near other nodes), true = 1920 fine anywhere
+      tapNodeToCycleCurve: true, // true = single-tapping Start/Relay/End cycles its curve mode
+      paletteZoom: 100, // 50 to 350 (%)
       gridRows: 16,
       lastUsedWidth: 2,
       currentColor: 'green',
@@ -588,11 +574,78 @@
     const paletteCtx = paletteCanvas.getContext('2d');
     const previewCanvas = document.getElementById('previewCanvas');
     const previewCtx = previewCanvas.getContext('2d');
+    const paletteViewport = document.getElementById('paletteViewport');
+    const paletteZoomInner = document.getElementById('paletteZoomInner');
 
+    const PALETTE_LOGICAL_W = 620;
+    const PALETTE_LOGICAL_H = 760;
     const PALETTE_PAD = { left: 48, right: 24, top: 28, bottom: 38 };
-    const PLOT_W = paletteCanvas.width - PALETTE_PAD.left - PALETTE_PAD.right;
-    const PLOT_H = paletteCanvas.height - PALETTE_PAD.top - PALETTE_PAD.bottom;
+    const PLOT_W = PALETTE_LOGICAL_W - PALETTE_PAD.left - PALETTE_PAD.right;
+    const PLOT_H = PALETTE_LOGICAL_H - PALETTE_PAD.top - PALETTE_PAD.bottom;
     const CELL_W = PLOT_W / GRID_COLS;
+
+    function setPaletteZoom(newZoomPct, preserveCenter = true) {
+      const clamped = Math.max(50, Math.min(350, Math.round(newZoomPct / 10) * 10));
+      state.paletteZoom = clamped;
+
+      // Update UI controls
+      const rng = document.getElementById('rngPaletteZoom');
+      const btnReset = document.getElementById('btnZoomReset');
+      if (rng) rng.value = String(clamped);
+      if (btnReset) btnReset.textContent = `${clamped}%`;
+
+      if (paletteZoomInner && paletteViewport && paletteCanvas) {
+        // Measure available width inside viewport
+        const style = window.getComputedStyle(paletteViewport);
+        const padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+        const padY = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+        const availW = Math.max(160, paletteViewport.clientWidth - padX);
+
+        // Base 100% width & height
+        const baseW = Math.min(520, availW);
+        const baseH = Math.round(baseW * (PALETTE_LOGICAL_H / PALETTE_LOGICAL_W));
+
+        // Keep viewport height steady so zooming in magnifies inside the scrollable frame
+        const targetViewportH = Math.min(Math.round(window.innerHeight * 0.74), baseH + padY + 4);
+        paletteViewport.style.height = `${targetViewportH}px`;
+
+        const prevW = paletteCanvas.offsetWidth || baseW;
+        const prevH = paletteCanvas.offsetHeight || baseH;
+        const viewW = paletteViewport.clientWidth;
+        const viewH = paletteViewport.clientHeight;
+        const centerRatioX = prevW > 0 ? (paletteViewport.scrollLeft + viewW / 2) / prevW : 0.5;
+        const centerRatioY = prevH > 0 ? (paletteViewport.scrollTop + viewH / 2) / prevH : 0.5;
+
+        const scale = clamped / 100;
+        const targetW = Math.round(baseW * scale);
+        const targetH = Math.round(targetW * (PALETTE_LOGICAL_H / PALETTE_LOGICAL_W));
+
+        paletteZoomInner.style.width = `${targetW}px`;
+        paletteZoomInner.style.height = `${targetH}px`;
+        paletteCanvas.style.width = `${targetW}px`;
+        paletteCanvas.style.height = `${targetH}px`;
+
+        // Adjust internal canvas resolution for crisp lines when zoomed in
+        const dpr = Math.min(3.5, (window.devicePixelRatio || 1) * Math.max(1, scale * 0.85));
+        const desiredPixelW = Math.round(PALETTE_LOGICAL_W * dpr);
+        const desiredPixelH = Math.round(PALETTE_LOGICAL_H * dpr);
+        if (paletteCanvas.width !== desiredPixelW || paletteCanvas.height !== desiredPixelH) {
+          paletteCanvas.width = desiredPixelW;
+          paletteCanvas.height = desiredPixelH;
+        }
+
+        renderPalette();
+
+        if (preserveCenter && prevW > 0 && prevH > 0) {
+          paletteViewport.scrollLeft = Math.max(0, Math.round(centerRatioX * targetW - viewW / 2));
+          paletteViewport.scrollTop = Math.max(0, Math.round(centerRatioY * targetH - viewH / 2));
+        }
+      }
+    }
+
+    function stepPaletteZoom(deltaPct) {
+      setPaletteZoom(state.paletteZoom + deltaPct, true);
+    }
 
     function getCellH() {
       return PLOT_H / state.gridRows;
@@ -977,10 +1030,14 @@
 
     function renderPalette() {
       const ctx = paletteCtx;
-      const W = paletteCanvas.width;
-      const H = paletteCanvas.height;
+      const W = PALETTE_LOGICAL_W;
+      const H = PALETTE_LOGICAL_H;
       const rows = state.gridRows;
       const cellH = getCellH();
+
+      const scaleX = paletteCanvas.width / PALETTE_LOGICAL_W;
+      const scaleY = paletteCanvas.height / PALETTE_LOGICAL_H;
+      ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
 
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = '#07090e';
@@ -1159,7 +1216,8 @@
           : '';
         const title = isStart ? `始点${cTag}` : (isEnd ? '終点' : `中継${nodeIndex}${cTag}`);
         const badgeY = isStart ? (rect.y2 + 11) : (rect.y1 - 11);
-        drawHoverBadge(ctx, (rect.x1 + rect.x2) * 0.5, badgeY, `${title} (縦辺:幅 / 内側:移動)`, '#0f172a', baseColor);
+        const tapHint = state.tapNodeToCycleCurve ? ' / タップ:カーブ' : '';
+        drawHoverBadge(ctx, (rect.x1 + rect.x2) * 0.5, badgeY, `${title} (縦辺:幅 / 内側:移動${tapHint})`, '#0f172a', baseColor);
       } else {
         // Inactive node on the selected shape (or Eraser relay hint): large clickable target box
         ctx.fillStyle = isEraserHint ? 'rgba(244, 63, 94, 0.14)' : 'rgba(15, 23, 42, 0.45)';
@@ -1341,8 +1399,8 @@
       const textW = ctx.measureText(text).width;
       const boxW = textW + padX * 2;
       const boxH = 19;
-      const clampedX = Math.max(PALETTE_PAD.left + boxW / 2, Math.min(paletteCanvas.width - PALETTE_PAD.right - boxW / 2, x));
-      const clampedY = Math.max(12, Math.min(paletteCanvas.height - 12, y));
+      const clampedX = Math.max(PALETTE_PAD.left + boxW / 2, Math.min(PALETTE_LOGICAL_W - PALETTE_PAD.right - boxW / 2, x));
+      const clampedY = Math.max(12, Math.min(PALETTE_LOGICAL_H - 12, y));
 
       ctx.fillStyle = bgColor;
       ctx.strokeStyle = borderColor;
@@ -1798,10 +1856,28 @@
       document.getElementById('btnSnapGrid').classList.toggle('active', !state.fine1920Snap);
       document.getElementById('btnSnap1920').classList.toggle('active', state.fine1920Snap);
 
+      const btnTapCurve = document.getElementById('btnToggleTapCurve');
+      if (btnTapCurve) {
+        btnTapCurve.classList.toggle('active', state.tapNodeToCycleCurve);
+        btnTapCurve.textContent = state.tapNodeToCycleCurve ? 'タップ切替:ON' : 'タップ切替:OFF';
+      }
+
       document.getElementById('lblCurveModeName').textContent = CURVE_MODES[cMode] || CURVE_MODES.straight;
       document.querySelectorAll('.curve-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.curve === cMode);
       });
+    }
+
+    function cycleNodeCurveByTap(shape, nodeIdx) {
+      if (!shape || !shape.nodes || shape.nodes.length < 2) return;
+      const segIdx = Math.min(Math.max(0, nodeIdx), shape.nodes.length - 2);
+      const order = ['straight', 'left', 'right'];
+      const cur = shape.nodes[segIdx].curveMode || 'straight';
+      const next = order[(order.indexOf(cur) + 1) % order.length];
+      shape.nodes[segIdx].curveMode = next;
+      state.currentCurveMode = next;
+      const nodeLabel = nodeIdx === 0 ? '始点' : (nodeIdx === shape.nodes.length - 1 ? '終点' : `中継${nodeIdx}`);
+      showToast(`${nodeLabel}タップでカーブを「${CURVE_MODES[next]}」に切り替えました`);
     }
 
     function toggleRelayAddMode() {
@@ -2256,6 +2332,7 @@
         savedAt: new Date().toISOString(),
         gridRows: state.gridRows,
         lastUsedWidth: state.lastUsedWidth,
+        tapNodeToCycleCurve: state.tapNodeToCycleCurve,
         slideOpacity: state.slideOpacity,
         guideOpacity: state.guideOpacity,
         grid: state.grid,
@@ -2341,8 +2418,8 @@
 
     function getCanvasMousePos(canvas, evt) {
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const scaleX = PALETTE_LOGICAL_W / rect.width;
+      const scaleY = PALETTE_LOGICAL_H / rect.height;
       return {
         x: (evt.clientX - rect.left) * scaleX,
         y: (evt.clientY - rect.top) * scaleY
@@ -2395,7 +2472,7 @@
 
     const dragState = {
       active: false,
-      type: null, // 'nodeLeft' | 'nodeRight' | 'nodeCenter' | 'newShape' | 'moveShapes' | 'erase'
+      type: null, // 'nodeLeft' | 'nodeRight' | 'nodeCenter' | 'newShape' | 'moveShapes' | 'erase' | 'pan'
       nodeIndex: 0,
       moved: false,
       mutated: false,
@@ -2404,6 +2481,10 @@
       dragOffsetCols: 0,
       startGridCol: 0,
       startGridRow: 0,
+      panStartClientX: 0,
+      panStartClientY: 0,
+      panStartScrollLeft: 0,
+      panStartScrollTop: 0,
       initialSelectedSnapshots: []
     };
 
@@ -2421,6 +2502,12 @@
 
       const lblHover = document.getElementById('lblHoverTarget');
       const activeShape = getActiveShape();
+
+      if (state.mode === 'pan') {
+        paletteCanvas.style.cursor = 'grab';
+        if (lblHover) lblHover.textContent = '視点移動モード: ドラッグで拡大したパレットをスクロール';
+        return;
+      }
 
       // 1. Eraser mode: check relay points first, then whole shapes
       if (state.mode === 'eraser') {
@@ -2566,7 +2653,9 @@
               hoverState.type = 'handleCenter';
               hoverState.shapeId = activeShape.id;
               hoverState.nodeIndex = k;
-              hoverState.label = `${nodeTitle}・枠内ドラッグで移動`;
+              hoverState.label = state.tapNodeToCycleCurve
+                ? `${nodeTitle}・枠内ドラッグで移動 / ワンタップでカーブ切替`
+                : `${nodeTitle}・枠内ドラッグで移動`;
             }
             if (lblHover) lblHover.textContent = hoverState.label;
             return;
@@ -2614,6 +2703,17 @@
     paletteCanvas.addEventListener('pointerdown', (evt) => {
       evt.preventDefault();
       paletteCanvas.setPointerCapture(evt.pointerId);
+
+      if (state.mode === 'pan') {
+        dragState.active = true;
+        dragState.type = 'pan';
+        dragState.panStartClientX = evt.clientX;
+        dragState.panStartClientY = evt.clientY;
+        dragState.panStartScrollLeft = paletteViewport ? paletteViewport.scrollLeft : 0;
+        dragState.panStartScrollTop = paletteViewport ? paletteViewport.scrollTop : 0;
+        paletteCanvas.style.cursor = 'grabbing';
+        return;
+      }
 
       const pos = getCanvasMousePos(paletteCanvas, evt);
       const gridPt = paletteXYToGrid(pos.x, pos.y);
@@ -2811,6 +2911,16 @@
         return;
       }
 
+      if (dragState.type === 'pan') {
+        if (paletteViewport) {
+          const dx = evt.clientX - dragState.panStartClientX;
+          const dy = evt.clientY - dragState.panStartClientY;
+          paletteViewport.scrollLeft = dragState.panStartScrollLeft - dx;
+          paletteViewport.scrollTop = dragState.panStartScrollTop - dy;
+        }
+        return;
+      }
+
       if (dragState.type === 'erase') {
         const erased = eraseAtCanvasAndGrid(pos.x, pos.y, gridPt.col, gridPt.row);
         if (erased) dragState.mutated = true;
@@ -2921,7 +3031,22 @@
     function finishPointerDrag() {
       if (!dragState.active) return;
 
-      if (dragState.type === 'moveShapes' && !dragState.moved && dragState.wasAlreadySelected) {
+      if (dragState.type === 'pan') {
+        paletteCanvas.style.cursor = 'grab';
+      } else if (
+        (dragState.type === 'nodeCenter' || dragState.type === 'nodeLeft' || dragState.type === 'nodeRight') &&
+        !dragState.moved
+      ) {
+        // Single tap on Start, Relay, or End point without dragging
+        const activeShape = getActiveShape();
+        if (activeShape && state.tapNodeToCycleCurve) {
+          if (dragState.pendingSnapshot) {
+            pushSnapshotToHistory(dragState.pendingSnapshot);
+          }
+          cycleNodeCurveByTap(activeShape, dragState.nodeIndex);
+          syncUIWithSelectedShape();
+        }
+      } else if (dragState.type === 'moveShapes' && !dragState.moved && dragState.wasAlreadySelected) {
         // Clicking on an already-selected shape body (outside node boxes) without dragging deselects it
         selectSingleShape(null);
         showToast('選択を解除しました');
@@ -2942,14 +3067,20 @@
 
     function setMode(newMode) {
       state.mode = newMode;
-      if (newMode === 'eraser') {
+      if (newMode === 'eraser' || newMode === 'pan') {
         state.relaySubMode = null;
       }
       document.querySelectorAll('.tool-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === newMode);
       });
       syncUIWithSelectedShape();
-      showToast(newMode === 'eraser' ? '消しゴム: 中継点の枠クリックで中継削除 / 図形クリックで消去' : 'パレット上で作成・編集');
+      if (newMode === 'eraser') {
+        showToast('消しゴム: 中継点の枠クリックで中継削除 / 図形クリックで消去');
+      } else if (newMode === 'pan') {
+        showToast('視点移動: パレットをドラッグして表示位置を移動できます');
+      } else {
+        showToast('パレット上で作成・編集');
+      }
       renderAll();
     }
 
@@ -2959,6 +3090,27 @@
 
     document.getElementById('btnGridMinus').addEventListener('click', () => stepGridDivision(-1));
     document.getElementById('btnGridPlus').addEventListener('click', () => stepGridDivision(1));
+
+    // Palette Zoom Controls (Unified in the top-right bar next to Palette title)
+    document.getElementById('btnZoomIn').addEventListener('click', () => stepPaletteZoom(20));
+    document.getElementById('btnZoomOut').addEventListener('click', () => stepPaletteZoom(-20));
+    document.getElementById('btnZoomReset').addEventListener('click', () => setPaletteZoom(100, false));
+    document.getElementById('rngPaletteZoom').addEventListener('input', (e) => {
+      setPaletteZoom(parseInt(e.target.value, 10), true);
+    });
+
+    window.addEventListener('resize', () => {
+      setPaletteZoom(state.paletteZoom, false);
+    });
+
+    if (paletteViewport) {
+      paletteViewport.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          stepPaletteZoom(e.deltaY < 0 ? 20 : -20);
+        }
+      }, { passive: false });
+    }
 
     function updateColorButtonsUI() {
       document.querySelectorAll('.color-swatch').forEach(btn => {
@@ -3019,6 +3171,18 @@
         }
         syncUIWithSelectedShape();
       });
+    });
+
+    document.getElementById('btnToggleTapCurve').addEventListener('click', () => {
+      state.tapNodeToCycleCurve = !state.tapNodeToCycleCurve;
+      syncUIWithSelectedShape();
+      renderPalette();
+      triggerAutoSave();
+      showToast(
+        state.tapNodeToCycleCurve
+          ? 'ワンタップ切替: ON (始点・中間・終点のタップでカーブ切替)'
+          : 'ワンタップ切替: OFF (タップしてもカーブを維持)'
+      );
     });
 
     // Relay Point Add Mode & Snap Interval Buttons
@@ -3186,6 +3350,9 @@
       if (typeof data.lastUsedWidth === 'number') {
         setLastUsedWidth(data.lastUsedWidth);
       }
+      if (typeof data.tapNodeToCycleCurve === 'boolean') {
+        state.tapNodeToCycleCurve = data.tapNodeToCycleCurve;
+      }
       if (typeof data.slideOpacity === 'number') {
         state.slideOpacity = data.slideOpacity;
         const pct = Math.round(state.slideOpacity * 100);
@@ -3316,6 +3483,7 @@
       state.history = [];
       state.redoStack = [];
       updateHistoryButtons();
+      setPaletteZoom(100, false);
     }
 
     window.onload = initApp;
